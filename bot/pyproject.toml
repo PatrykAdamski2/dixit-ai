@@ -1,0 +1,17 @@
+[project]
+name = "bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.136.1",
+    "google-genai>=2.0.0",
+    "numpy>=2.4.4",
+    "open-clip-torch>=3.3.0",
+    "pillow>=12.2.0",
+    "python-multipart>=0.0.27",
+    "torch>=2.11.0",
+    "torchvision>=0.26.0",
+    "uvicorn[standard]>=0.46.0",
+]
