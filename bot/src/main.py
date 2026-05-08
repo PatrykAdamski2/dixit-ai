@@ -1,17 +1,23 @@
+from functools import lru_cache
 import io
-from typing import Any, List
+import os
+from typing import Any, List, Tuple
 from pathlib import Path
 import sys
+from dotenv import load_dotenv
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 import google.genai as genai
 import open_clip
 import torch
 from PIL import Image
 
-model_file = Path(__file__).resolve().parent.parent / "model" / "open_clip_pytorch_model.bin"
-if not model_file.exists() or model_file.stat().st_size == 0:
-    print(f"Model not found at: {model_file}")
+MODEL_FILE = Path(__file__).resolve().parent.parent / "model" / "open_clip_pytorch_model.bin"
+if not MODEL_FILE.exists() or MODEL_FILE.stat().st_size == 0:
+    print(f"Model not found at: {MODEL_FILE}")
     print("Please run: python3 bot/src/setup.py to download the model before starting the bot.", flush=True)
     sys.exit(1)
+
+load_dotenv()
 
 
 class GeminiNarrator:
@@ -49,13 +55,16 @@ class OpenClipMatcher:
     def __init__(self) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         model, _, preprocess = open_clip.create_model_and_transforms(
-            "ViT-B-32", pretrained="./model/open_clip_pytorch_model.bin"
+            "ViT-B-32", pretrained=str(MODEL_FILE)
         )
         self.model : Any = model.eval().to(self.device)
         self.preprocess : Any = preprocess
         self.tokenizer = open_clip.get_tokenizer("ViT-B-32")
 
-    def choose_best_image(self, images: List[Image.Image], clue: str) -> List[float]:
+    def choose_best_image(self, images: List[Image.Image], clue: str) -> Tuple[int, List[float]]:
+        if not images:
+            raise ValueError("At least one image is required")
+        
         image_tensors = [self.preprocess(img).unsqueeze(0) for img in images]
         image_batch = torch.cat(image_tensors).to(self.device)
         text_tokens = self.tokenizer([clue]).to(self.device)
@@ -67,7 +76,66 @@ class OpenClipMatcher:
             image_features /= image_features.norm(dim=-1, keepdim=True)
             text_features /= text_features.norm(dim=-1, keepdim=True)
 
-            probs = (100.0 * image_features @ text_features.T).softmax(dim=0).T
+            probs_tensor = (100.0 * image_features @ text_features.T).softmax(dim=0).T
         
-        return probs
+        probabilities = probs_tensor.squeeze(0).detach().cpu().tolist()
+        best_index = probs_tensor.argmax().item()
+        return best_index, probabilities
     
+def _bytes_to_pil_image(raw: bytes) -> Image.Image:
+    try:
+        return Image.open(io.BytesIO(raw)).convert("RGB")
+    except Exception as exc:
+        raise ValueError("Invalid image file.") from exc
+
+@lru_cache(maxsize=1)
+def get_narrator() -> GeminiNarrator:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY is not set.")
+    return GeminiNarrator(api_key=api_key)
+
+
+@lru_cache(maxsize=1)
+def get_matcher() -> OpenClipMatcher:
+    return OpenClipMatcher()
+
+app = FastAPI(title="Dixit Bot API")
+
+@app.post("/generate-prompt")
+async def generate_prompt(image: UploadFile = File(...)) -> dict:
+    raw = await image.read()
+    try:
+        pil_image = _bytes_to_pil_image(raw)
+        clue = get_narrator().generate_clue(pil_image)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {"clue": clue}
+
+@app.post("/choose-card")
+async def choose_card(
+    clue: str = Form(...),
+    images: List[UploadFile] = File(...),
+) -> dict:
+    if not clue.strip():
+        raise HTTPException(status_code=400, detail="clue is required.")
+    if not images:
+        raise HTTPException(status_code=400, detail="At least one image is required.")
+
+    try:
+        pil_images = [_bytes_to_pil_image(await img.read()) for img in images]
+        best_index, probabilities = get_matcher().choose_best_image(pil_images, clue.strip())
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to choose card: {exc}") from exc
+
+    return {
+        "best_index": best_index,
+        "probabilities": probabilities,
+    }
