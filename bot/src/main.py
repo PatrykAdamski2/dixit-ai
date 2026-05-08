@@ -1,10 +1,18 @@
 import io
 from typing import Any, List
-
+from pathlib import Path
+import sys
 import google.genai as genai
 import open_clip
 import torch
 from PIL import Image
+
+model_file = Path(__file__).resolve().parent.parent / "model" / "open_clip_pytorch_model.bin"
+if not model_file.exists() or model_file.stat().st_size == 0:
+    print(f"Model not found at: {model_file}")
+    print("Please run: python3 bot/src/setup.py to download the model before starting the bot.", flush=True)
+    sys.exit(1)
+
 
 class GeminiNarrator:
     def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash") -> None:
