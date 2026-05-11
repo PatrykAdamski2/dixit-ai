@@ -36,7 +36,7 @@ export function PersonalizationView() {
           setActiveThemeId(userData.activeThemeId);
           setOwnedThemeIds(userData.ownedThemeIds);
           
-          // Update store with fresh user data
+          // Odświeżamy dane użytkownika w globalnym stanie
           setUser({
             username: userData.username,
             coins: userData.coins,
@@ -134,7 +134,7 @@ export function PersonalizationView() {
                 <div className="w-full aspect-video rounded-2xl overflow-hidden relative mb-6 border border-gray-100 shadow-inner">
                   <div className={`absolute inset-0 ${theme.preview}`}></div>
                   
-                  {/* Abstract shapes in preview */}
+                  {/* Abstrakcyjne kształty w podglądzie - docelowo mogą być tu miniatury kart */}
                   <div className="absolute top-4 left-4 w-20 h-20 bg-white/10 rounded-full blur-md"></div>
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-black/10 rotate-45"></div>
                 </div>

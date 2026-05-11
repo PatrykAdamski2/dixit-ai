@@ -23,25 +23,25 @@ export interface UserProfile {
 }
 
 interface GameState {
-  // User info
+  // Informacje o zalogowanym użytkowniku
   user: UserProfile | null;
 
-  // Room info
+  // Dane pokoju / lobby
   roomCode: string | null;
   currentPhase: GamePhase;
   
-  // Players and Turn info
+  // Lista graczy i info o turze
   players: Player[];
   myId: string | null;
   narratorId: string | null;
   
-  // Round data
+  // Dane konkretnej rundy
   myHand: Card[];
-  tableCards: Card[]; // Cards shown for voting
+  tableCards: Card[]; // Karty wyłożone do głosowania
   narratorPrompt: string | null;
   timer: number | null;
 
-  // Actions
+  // Akcje zmieniające stan
   setUser: (user: UserProfile | null) => void;
   setRoomCode: (code: string | null) => void;
   setPhase: (phase: GamePhase) => void;
@@ -53,7 +53,7 @@ interface GameState {
   setMyId: (id: string | null) => void;
   setGameState: (state: Partial<GameState>) => void;
   
-  // Helpers
+  // Funkcje pomocnicze
   resetGame: () => void;
 }
 
@@ -86,7 +86,7 @@ export const useGameStore = create<GameState>((set) => ({
   setTimer: (timer) => set({ timer }),
   setMyId: (myId) => set({ myId }),
   setGameState: (newState) => set((state) => {
-    // If players are being updated, also update narratorId
+    // Przy aktualizacji graczy od razu wyciągamy ID narratora dla wygody
     const updatedNarratorId = newState.players 
       ? newState.players.find(p => p.isNarrator)?.id || null 
       : state.narratorId;

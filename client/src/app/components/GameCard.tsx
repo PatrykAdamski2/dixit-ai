@@ -14,8 +14,8 @@ interface GameCardProps {
 }
 
 /**
- * GameCard component for displaying Dixit cards.
- * Handles 2:3 aspect ratio and lazy loading.
+ * Komponent GameCard do wyświetlania kart Dixit. 
+ * Obsługuje proporcje 2:3 i leniwe ładowanie.
  */
 export const GameCard: React.FC<GameCardProps> = ({
   cardId,
@@ -27,12 +27,12 @@ export const GameCard: React.FC<GameCardProps> = ({
   className,
   size = 'md',
 }) => {
-  // Determine final image source
+  // Ustalamy skąd wziąć obrazek (rewers lub konkretny numer)
   const finalSrc = isBack 
     ? '/Karty/KartaRewers.png' 
     : (imageUrl || (cardId ? `/Karty/KartaNr${cardId}.png` : ''));
 
-  // Size constraints (keeping 2:3 ratio)
+  // Klasy wielkości - zachowujemy proporcje 2:3
   const sizeClasses = {
     sm: 'w-24 h-36',
     md: 'w-32 h-48',
@@ -59,7 +59,7 @@ export const GameCard: React.FC<GameCardProps> = ({
         loading="lazy"
       />
       
-      {/* Selection overlay for accessibility/visual feedback */}
+      {/* Nakładka informująca o zaznaczeniu karty */}
       {isSelected && (
         <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
           <div className="bg-primary text-white rounded-full p-1 scale-110 shadow-lg">

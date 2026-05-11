@@ -13,7 +13,7 @@ export function HostGameView() {
   const lobbyCode = roomCode || "------";
 
   useEffect(() => {
-    // Fetch initial random or default settings from backend
+    // Pobieramy domyślne ustawienia lobby z serwera
     const fetchSettings = async () => {
       try {
         const response = await fetch('/api/lobby/default-settings');
@@ -41,7 +41,7 @@ export function HostGameView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomCode }),
       });
-      // The store update should happen via socket event 'gameStateUpdate'
+      // Nie musimy tu nic ustawiać, stan zaktualizuje się sam przez Socket.io (event gameStateUpdate)
     } catch (error) {
       console.error('Failed to add bot:', error);
     }
@@ -62,7 +62,7 @@ export function HostGameView() {
     }
   };
 
-  // For now, use storePlayers or fallback to mock if empty for visual demo
+  // Wyświetlamy graczy z pokoju, jeśli lista jest pusta to znaczy że czekamy na połączenie
   const displayPlayers = storePlayers.length > 0 ? storePlayers : [];
 
   return (

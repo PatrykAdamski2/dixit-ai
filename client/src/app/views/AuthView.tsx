@@ -32,8 +32,8 @@ export function AuthView() {
 
       if (response.ok) {
         if (isLogin) {
-          // Backend returns { response: "Zalogowany", username: "..." }
-          // Assume it might also return coins and avatar in the future
+          // Backend zwraca płaski obiekt, mapujemy go na strukturę profilu w storze
+          // Na przyszłość: obsługa monet i awatara bezpośrednio z API
           setUser({
             username: data.username || data.user?.username || data.user?.login || login,
             coins: data.coins ?? data.user?.coins ?? 0,
