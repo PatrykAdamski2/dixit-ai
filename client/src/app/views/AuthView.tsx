@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Gamepad2, Mail, Lock, User } from 'lucide-react';
+import { useGameStore } from '../store/useGameStore';
 
 export function AuthView() {
   const [isLogin, setIsLogin] = useState(true);
@@ -11,6 +12,7 @@ export function AuthView() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const setUser = useGameStore((state) => state.setUser);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +32,13 @@ export function AuthView() {
 
       if (response.ok) {
         if (isLogin) {
+          // Backend returns { response: "Zalogowany", username: "..." }
+          // Assume it might also return coins and avatar in the future
+          setUser({
+            username: data.username || data.user?.username || data.user?.login || login,
+            coins: data.coins ?? data.user?.coins ?? 0,
+            avatar: data.avatar ?? data.user?.avatar ?? (data.username || login).substring(0, 2).toUpperCase()
+          });
           navigate('/menu');
         } else {
           setIsLogin(true);

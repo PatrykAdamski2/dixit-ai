@@ -1,12 +1,12 @@
 import React from 'react';
-import { Clock } from 'lucide-react';
-import { cn } from './Button';
+import { cn } from '@/app/components/ui/utils';
+import { GameCard } from './GameCard';
 
 export function TimerBox({ seconds }: { seconds: number }) {
   return (
-    <div className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-2xl shadow-lg border-2 border-gray-800">
-      <Clock size={20} className="text-orange-400" />
-      <span className="text-2xl font-black tabular-nums">{seconds}s</span>
+    <div className="flex items-center gap-3 bg-gray-900 text-white px-5 py-2.5 rounded-2xl shadow-lg border-2 border-gray-800">
+      <img src="/Ikony/ClockIcon.svg" className="w-6 h-6" alt="Czas" />
+      <span className="text-2xl font-black tabular-nums leading-none">{seconds}s</span>
     </div>
   );
 }
@@ -59,35 +59,23 @@ export function CardGrid({
   onSelect, 
   selectedId 
 }: { 
-  cards: { id: string, image: string }[], 
+  cards: { id: string, image?: string }[], 
   onSelect?: (id: string) => void,
   selectedId?: string 
 }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-4xl mx-auto px-4 mt-auto">
-      {cards.map((card) => {
-        const isSelected = selectedId === card.id;
-        return (
-          <button
-            key={card.id}
-            onClick={() => onSelect && onSelect(card.id)}
-            className={cn(
-              "relative aspect-square rounded-[2rem] overflow-hidden transition-all duration-300 transform",
-              onSelect ? "cursor-pointer hover:scale-105 hover:shadow-2xl" : "cursor-default",
-              isSelected ? "scale-105 shadow-2xl ring-8 ring-orange-500 ring-offset-4 ring-offset-[#f3f4f6]" : "shadow-lg border border-gray-200"
-            )}
-          >
-            <img 
-              src={card.image} 
-              alt="Karta" 
-              className="w-full h-full object-cover"
-            />
-            {isSelected && (
-              <div className="absolute inset-0 bg-orange-500/20" />
-            )}
-          </button>
-        );
-      })}
+    <div className="flex flex-wrap justify-center gap-6 w-full max-w-5xl mx-auto px-4 mt-auto mb-8">
+      {cards.map((card) => (
+        <GameCard
+          key={card.id}
+          cardId={card.id}
+          imageUrl={card.image}
+          isSelected={selectedId === card.id}
+          isSelectable={!!onSelect}
+          onClick={() => onSelect?.(card.id)}
+          size="md"
+        />
+      ))}
     </div>
   );
 }
