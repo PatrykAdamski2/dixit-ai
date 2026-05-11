@@ -13,13 +13,13 @@ export function JoinLobbyView() {
     e.preventDefault();
     if (code.length === 6) {
       setIsJoining(true);
-      // Backend integration will happen in future tasks
+      // Integracja z API dołączania do pokoju zostanie dodana później
     }
   };
 
   const hasJoined = !!storeRoomCode || isJoining;
 
-  // Visual demo data if store is empty
+  // Przykładowe dane do podglądu, jeśli nie jesteśmy jeszcze połączeni z serwerem
   const displayPlayers = storePlayers.length > 0 ? storePlayers : [
     { id: '1', username: 'HostPlayer', isNarrator: false, isConnected: true, isBot: false, score: 0 },
     { id: 'me', username: 'Twoja Nazwa', isNarrator: false, isConnected: true, isBot: false, score: 0 },

@@ -8,8 +8,8 @@ import { RoundEndView } from './RoundEndView';
 import { NarratorTurnView } from './NarratorTurnView'; // Used as waiting view for others
 
 /**
- * Main GameBoard component that orchestrates the gameplay phases.
- * It reads the current phase from useGameStore and renders the appropriate view.
+ * Główny komponent planszy gry, który zarządza widokami w zależności od fazy.
+ * Pobiera aktualną fazę ze stora i renderuje odpowiedni widok dla gracza lub narratora.
  */
 export function GameBoard() {
   const { currentPhase, players, myId, narratorId } = useGameStore();
@@ -17,7 +17,7 @@ export function GameBoard() {
   const isNarrator = myId === narratorId;
   const me = players.find(p => p.id === myId);
 
-  // Phase Router
+  // Przełącznik widoków w zależności od etapu rozgrywki
   switch (currentPhase) {
     case 'waiting':
       return <div className="text-center p-20 font-bold text-2xl">Oczekiwanie na graczy...</div>;
@@ -29,7 +29,7 @@ export function GameBoard() {
       return isNarrator ? <NarratorTurnView /> : <PlayerHandView />;
 
     case 'voting':
-      // Everyone except narrator votes
+      // Głosują wszyscy poza narratorem
       return isNarrator ? <NarratorTurnView /> : <PlayerVoteView />;
 
     case 'scoring':

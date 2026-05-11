@@ -134,7 +134,7 @@ export function PersonalizationView() {
                 <div className="w-full aspect-video rounded-2xl overflow-hidden relative mb-6 border border-gray-100 shadow-inner">
                   <div className={`absolute inset-0 ${theme.preview}`}></div>
                   
-                  {/* Abstrakcyjne kształty w podglądzie - docelowo mogą być tu miniatury kart */}
+                  {/* Dekoracyjne elementy podglądu - tutaj można w przyszłości wstawić miniatury kart z danego zestawu */}
                   <div className="absolute top-4 left-4 w-20 h-20 bg-white/10 rounded-full blur-md"></div>
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-black/10 rotate-45"></div>
                 </div>
@@ -186,5 +186,7 @@ export function PersonalizationView() {
         )}
       </div>
     </div>
+  );
+}/div>
   );
 }

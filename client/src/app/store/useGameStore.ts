@@ -23,25 +23,25 @@ export interface UserProfile {
 }
 
 interface GameState {
-  // Informacje o zalogowanym użytkowniku
+  // Informacje o zalogowanym użytkowniku (monety, nick itp.)
   user: UserProfile | null;
 
-  // Dane pokoju / lobby
+  // Kod pokoju i aktualna faza gry (np. wybieranie kart, głosowanie)
   roomCode: string | null;
   currentPhase: GamePhase;
   
-  // Lista graczy i info o turze
+  // Lista wszystkich graczy w lobby/grze
   players: Player[];
-  myId: string | null;
-  narratorId: string | null;
+  myId: string | null; // Moje ID przypisane przez serwer
+  narratorId: string | null; // ID gracza, który jest aktualnie narratorem
   
-  // Dane konkretnej rundy
-  myHand: Card[];
-  tableCards: Card[]; // Karty wyłożone do głosowania
-  narratorPrompt: string | null;
-  timer: number | null;
+  // Stan konkretnej rundy
+  myHand: Card[]; // Karty, które mam na ręce
+  tableCards: Card[]; // Karty wyłożone na środek do głosowania
+  narratorPrompt: string | null; // Hasło wymyślone przez narratora
+  timer: number | null; // Czas pozostały do końca fazy (w sekundach)
 
-  // Akcje zmieniające stan
+  // Funkcje do aktualizacji stanu
   setUser: (user: UserProfile | null) => void;
   setRoomCode: (code: string | null) => void;
   setPhase: (phase: GamePhase) => void;
@@ -51,9 +51,11 @@ interface GameState {
   setNarratorPrompt: (prompt: string | null) => void;
   setTimer: (seconds: number | null) => void;
   setMyId: (id: string | null) => void;
+  
+  // Masowa aktualizacja stanu (przydatne przy eventach z Socket.io)
   setGameState: (state: Partial<GameState>) => void;
   
-  // Funkcje pomocnicze
+  // Powrót do stanu początkowego (np. po wyjściu z gry)
   resetGame: () => void;
 }
 

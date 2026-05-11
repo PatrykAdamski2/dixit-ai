@@ -5,12 +5,12 @@ import { initSocketListeners, socket } from './services/socket';
 
 export default function App() {
   useEffect(() => {
-    // Initialize listeners once
+    // Inicjalizujemy listenery tylko raz
     initSocketListeners();
 
-    // Check if we should connect (e.g., if there's a session)
-    // For now, we attempt to connect; the server-side io.use middleware
-    // will handle authentication via cookies.
+    // Sprawdzamy, czy powinniśmy się połączyć (np. jeśli sesja jest aktywna).
+    // Na razie próbujemy połączyć się od razu; middleware po stronie serwera
+    // zajmie się autoryzacją na podstawie ciasteczek.
     socket.connect();
 
     return () => {

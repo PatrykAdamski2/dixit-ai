@@ -7,9 +7,9 @@ export function PlayerVoteView() {
   const { tableCards, narratorPrompt, timer, myId } = useGameStore();
   const [selectedCardId, setSelectedCardId] = useState<string | undefined>();
 
-  // In a real game, the server would tell us which card is ours 
-  // so we can't vote for it. For now we assume we can vote for any.
-  // TODO: Add 'mySubmittedCardId' to store in Task 4.
+  // Docelowo serwer powie nam, która karta należy do nas, żebyśmy nie mogli na nią głosować.
+  // Na razie przyjmujemy, że można kliknąć w dowolną.
+  // TODO: Dodać 'mySubmittedCardId' do stora przy integracji z backendem.
 
   const handleVote = () => {
     if (!selectedCardId) return;

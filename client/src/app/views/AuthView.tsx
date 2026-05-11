@@ -32,8 +32,9 @@ export function AuthView() {
 
       if (response.ok) {
         if (isLogin) {
-          // Backend zwraca płaski obiekt, mapujemy go na strukturę profilu w storze
-          // Na przyszłość: obsługa monet i awatara bezpośrednio z API
+          // Mapujemy odpowiedź z API na nasz lokalny stan.
+          // Uwzględniamy różne formaty (np. login vs username), żeby nie wywaliło się przy zmianach na backendzie.
+          // Jeśli API nie zwróci monet lub awatara, ustawiamy bezpieczne wartości domyślne.
           setUser({
             username: data.username || data.user?.username || data.user?.login || login,
             coins: data.coins ?? data.user?.coins ?? 0,

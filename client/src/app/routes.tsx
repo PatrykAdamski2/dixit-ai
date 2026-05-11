@@ -8,7 +8,7 @@ import { HostGameView } from "./views/HostGameView";
 import { JoinLobbyView } from "./views/JoinLobbyView";
 import { GameBoard } from "./views/Gameplay/GameBoard";
 
-// Gameplay Previews (Legacy/Debugging)
+// Podglądy widoków gry (używane przy projektowaniu lub debugowaniu)
 import { NarratorHandView } from "./views/Gameplay/NarratorHandView";
 import { NarratorTurnView } from "./views/Gameplay/NarratorTurnView";
 import { PlayerHandView } from "./views/Gameplay/PlayerHandView";

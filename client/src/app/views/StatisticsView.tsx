@@ -96,8 +96,8 @@ export function StatisticsView() {
             ))
           ) : (
             <div className="text-center py-12 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-              <p className="text-gray-400 font-bold">Brak danych rankingowych do wyświetlenia</p>
-              <p className="text-xs text-gray-400 mt-1">(Oczekiwanie na dane z serwera...)</p>
+              <p className="text-gray-400 font-bold">Na razie pusto... nikt jeszcze nie wygrał!</p>
+              <p className="text-xs text-gray-400 mt-1">(Albo czekamy na połączenie z serwerem statystyk)</p>
             </div>
           )}
 

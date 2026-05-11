@@ -41,9 +41,10 @@ export function HostGameView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomCode }),
       });
-      // Nie musimy tu nic ustawiać, stan zaktualizuje się sam przez Socket.io (event gameStateUpdate)
+      // Tutaj celowo nic nie zmieniamy w lokalnym stanie.
+      // Czekamy na sygnał z Socket.io (zdarzenie gameStateUpdate), który odświeży listę u wszystkich.
     } catch (error) {
-      console.error('Failed to add bot:', error);
+      console.error('Nie udało się dodać bota:', error);
     }
   };
 
