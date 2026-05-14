@@ -10,3 +10,19 @@ services:
     command: npm run start
     environment:
       - NODE_ENV=production
+
+  bot:
+    build:
+      context: bot
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - bot-model:/app/model
+
+volumes:
+  bot-model:

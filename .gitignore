@@ -148,7 +148,9 @@ vite.config.ts.timestamp-*
 
 # python venv
 venv/
+.venv/
 __pycache__/
+*.egg-info/
 
 # openclip model
 bot/model/
