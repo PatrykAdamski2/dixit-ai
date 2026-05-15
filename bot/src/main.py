@@ -254,3 +254,55 @@ async def choose_card_by_ids(payload: ChooseCardByIdsRequest) -> dict:
         "probabilities": probabilities,
     }
 
+class GeneratePromptBase64Request(BaseModel):
+    image_b64: str
+
+
+class ChooseCardBase64Request(BaseModel):
+    clue: str = Field(min_length=1)
+    images_b64: List[str] = Field(min_length=1)
+
+
+@app.post("/generate-prompt-base64")
+async def generate_prompt_base64(payload: GeneratePromptBase64Request) -> dict:
+    try:
+        raw = base64.b64decode(payload.image_b64)
+    except (binascii.Error, TypeError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid base64 image") from exc
+
+    try:
+        pil_image = _bytes_to_pil_image(raw)
+        clue = get_narrator().generate_clue(pil_image)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return {"clue": clue}
+
+
+@app.post("/choose-card-base64")
+async def choose_card_base64(payload: ChooseCardBase64Request) -> dict:
+    clue = payload.clue.strip()
+    if not clue:
+        raise HTTPException(status_code=400, detail="clue is required.")
+
+    pil_images: List[Image.Image] = []
+    try:
+        for b64 in payload.images_b64:
+            try:
+                raw = base64.b64decode(b64)
+            except (binascii.Error, TypeError) as exc:
+                raise HTTPException(status_code=400, detail="One of the images is not valid base64") from exc
+            pil_images.append(_bytes_to_pil_image(raw))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        best_index, probabilities = get_matcher().choose_best_image(pil_images, clue)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to choose card: {exc}") from exc
+
+    return {"best_index": best_index, "probabilities": probabilities}
