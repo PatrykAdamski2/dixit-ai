@@ -12,7 +12,7 @@ services:
     environment:
       - NODE_ENV=development
 
-    command: sh -c "npm install && npx prisma generate && npm run dev"
+    command: sh -c "npm install && npx prisma db pull && npx prisma generate && npm run dev"
 
   client:
     image: node:25-alpine

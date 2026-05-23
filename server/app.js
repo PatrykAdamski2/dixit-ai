@@ -5,6 +5,8 @@ const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 // const { createClient } = require('redis');
 
+const authRoutes = require('./routes/auth');
+const gameHandler = require('./handlers/gameHandler');
 const { createApp } = require('./appFactory');
 
 // Initialize Redis client (uncomment when Redis server is available)
@@ -33,9 +35,9 @@ io.use((socket, next) => {
 });
 
 // TODO: Placeholder for game logic
-const gameHandler = (io, socket) => {
-    console.log(`Nowy gracz połączony. ID Gniazda: ${socket.id}`);
-};
+// const gameHandler = (io, socket) => {
+//     console.log(`Nowy gracz połączony. ID Gniazda: ${socket.id}`);
+// };
 
 io.on('connection', (socket) => gameHandler(io, socket));
 

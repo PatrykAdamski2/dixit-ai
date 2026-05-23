@@ -20,6 +20,7 @@ model cards {
   id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   set_id              String                @db.Uuid
   image_url           String
+  tags                Json?
   card_sets           card_sets             @relation(fields: [set_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   player_card_history player_card_history[]
   player_hands        player_hands[]
