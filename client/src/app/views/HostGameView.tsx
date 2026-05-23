@@ -1,23 +1,70 @@
-import React, { useState } from 'react';
-import { Copy, Users, Flag, Trophy, Settings2, Play } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Copy, Flag, Trophy, Settings2, Bot, Plus } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-
-const JOINED_PLAYERS = [
-  { id: 1, name: 'PlayerOne', isHost: true },
-  { id: 2, name: 'AliceInWonder', isHost: false },
-  { id: 3, name: 'BobTheBuilder', isHost: false },
-];
+import { useGameStore } from '../store/useGameStore';
 
 export function HostGameView() {
-  const [players, setPlayers] = useState(4);
+  const { players: storePlayers, roomCode } = useGameStore();
+  const [maxPlayers, setMaxPlayers] = useState(4);
   const [endCondition, setEndCondition] = useState<'points' | 'rounds'>('points');
   const [endLimit, setEndLimit] = useState(30);
-  const lobbyCode = "A 9 X 2 F B";
+  
+  const lobbyCode = roomCode || "------";
+
+  useEffect(() => {
+    // Pobieramy domyślne ustawienia lobby z serwera
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/lobby/default-settings');
+        if (response.ok) {
+          const data = await response.json();
+          setMaxPlayers(data.maxPlayers);
+          setEndCondition(data.endCondition);
+          setEndLimit(data.endLimit);
+        }
+      } catch (error) {
+        console.error('Failed to fetch lobby settings:', error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(lobbyCode.replace(/ /g, ''));
+    navigator.clipboard.writeText(lobbyCode);
   };
+
+  const handleAddBot = async () => {
+    try {
+      await fetch('/api/lobby/add-bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomCode }),
+      });
+      // Tutaj celowo nic nie zmieniamy w lokalnym stanie.
+      // Czekamy na sygnał z Socket.io (zdarzenie gameStateUpdate), który odświeży listę u wszystkich.
+    } catch (error) {
+      console.error('Nie udało się dodać bota:', error);
+    }
+  };
+
+  const handleStartGame = async () => {
+    try {
+      await fetch('/api/lobby/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          roomCode,
+          settings: { maxPlayers, endCondition, endLimit }
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to start game:', error);
+    }
+  };
+
+  // Wyświetlamy graczy z pokoju, jeśli lista jest pusta to znaczy że czekamy na połączenie
+  const displayPlayers = storePlayers.length > 0 ? storePlayers : [];
 
   return (
     <div className="w-full max-w-xl mx-auto px-4 py-8 relative">
@@ -54,24 +101,24 @@ export function HostGameView() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <label className="flex items-center gap-2 font-bold text-gray-900 text-lg">
-                <Users className="text-gray-400" />
+                <img src="/Ikony/PlayerIcon.svg" className="w-6 h-6 opacity-60" alt="" />
                 Maksymalna liczba graczy
               </label>
               <span className="bg-gray-100 text-gray-900 px-4 py-1 rounded-full font-black text-xl">
-                {players}
+                {maxPlayers}
               </span>
             </div>
             <input 
               type="range" 
-              min="3" 
-              max="8" 
-              value={players}
-              onChange={(e) => setPlayers(parseInt(e.target.value))}
+              min="4" 
+              max="6" 
+              value={maxPlayers}
+              onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600"
             />
             <div className="flex justify-between text-xs font-bold text-gray-400">
-              <span>3</span>
-              <span>8</span>
+              <span>4</span>
+              <span>6</span>
             </div>
           </div>
 
@@ -122,39 +169,66 @@ export function HostGameView() {
 
           {/* Joined Players */}
           <div className="space-y-4">
-            <label className="flex items-center gap-2 font-bold text-gray-900 text-lg">
-              Dołączyli Gracze ({JOINED_PLAYERS.length}/{players})
-            </label>
+            <div className="flex justify-between items-center">
+              <label className="flex items-center gap-2 font-bold text-gray-900 text-lg">
+                Dołączyli Gracze ({displayPlayers.length}/{maxPlayers})
+              </label>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAddBot}
+                disabled={displayPlayers.length >= maxPlayers}
+                className="h-8 text-xs gap-1.5"
+              >
+                <Bot size={14} /> Dodaj AI
+              </Button>
+            </div>
             <div className="bg-white border-2 border-gray-100 rounded-2xl p-2 space-y-2">
-              {JOINED_PLAYERS.map(player => (
+              {displayPlayers.map((player, index) => (
                 <div key={player.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">
-                      {player.name.substring(0, 2).toUpperCase()}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center p-1.5 overflow-hidden ${
+                      player.isBot ? 'bg-indigo-100 text-indigo-600' : 'bg-orange-100 text-orange-600'
+                    }`}>
+                      <img 
+                        src="/Ikony/PlayerIcon.svg" 
+                        className={`w-full h-full ${player.isBot ? 'hue-rotate-[240deg] saturate-200' : ''}`} 
+                        alt="" 
+                      />
                     </div>
-                    <span className="font-bold text-gray-900">{player.name}</span>
+                    <span className="font-bold text-gray-900">{player.username}</span>
+                    {player.isBot && (
+                      <span className="text-[10px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-tighter">
+                        AI
+                      </span>
+                    )}
                   </div>
-                  {player.isHost && (
+                  {index === 0 && (
                     <span className="text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-md uppercase">
                       Host
                     </span>
                   )}
                 </div>
               ))}
-              {Array.from({ length: players - JOINED_PLAYERS.length }).map((_, i) => (
+              {Array.from({ length: Math.max(0, maxPlayers - displayPlayers.length) }).map((_, i) => (
                 <div key={`empty-${i}`} className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-gray-200">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-gray-300" />
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center p-2 opacity-30">
+                    <img src="/Ikony/PlayerIcon.svg" className="w-full h-full" alt="" />
                   </div>
-                  <span className="font-medium text-gray-400 italic">Oczekiwanie na gracza...</span>
+                  <span className="font-medium text-gray-400 italic text-sm">Oczekiwanie na gracza...</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        <Button size="lg" className="w-full flex items-center justify-center gap-3 py-8 rounded-2xl text-xl shadow-xl shadow-orange-500/20">
-          <Play className="fill-white" size={24} /> Rozpocznij Grę
+        <Button 
+          size="lg" 
+          onClick={handleStartGame}
+          disabled={displayPlayers.length < 2} // Allow starting with 2+ players (including bots)
+          className="w-full flex items-center justify-center gap-4 py-8 rounded-2xl text-xl shadow-xl shadow-orange-500/20"
+        >
+          <img src="/Ikony/AcceptIcon.svg" className="w-8 h-8" alt="" /> Rozpocznij Grę
         </Button>
       </div>
     </div>

@@ -2,9 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { Swords, Users, BarChart3, Palette } from 'lucide-react';
+import { useGameStore } from '../store/useGameStore';
 
 export function MainMenuView() {
   const navigate = useNavigate();
+  const user = useGameStore((state) => state.user);
 
   return (
     <div className="w-full max-w-lg mx-auto">
@@ -12,7 +14,7 @@ export function MainMenuView() {
         
         <div className="text-center space-y-2">
           <div className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full font-bold text-sm mb-4">
-            Witaj z powrotem, PlayerOne!
+            Witaj z powrotem, {user?.username || 'Graczu'}!
           </div>
           <h1 className="text-5xl font-black text-gray-900 tracking-tight drop-shadow-sm">
             Dixit AI
@@ -30,7 +32,7 @@ export function MainMenuView() {
               <Swords className="group-hover:rotate-12 transition-transform" size={28} />
               Stwórz nową grę
             </span>
-            <span className="text-orange-200">→</span>
+            <img src="/Ikony/NextIcon.svg" className="w-8 h-8 group-hover:translate-x-1 transition-transform" alt="" />
           </Button>
 
           <Button 
@@ -40,9 +42,10 @@ export function MainMenuView() {
             onClick={() => navigate('/join')}
           >
             <span className="flex items-center gap-4 text-xl">
-              <Users className="group-hover:scale-110 transition-transform" size={24} />
+              <img src="/Ikony/PlayerIcon.svg" className="w-7 h-7 group-hover:scale-110 transition-transform opacity-80" alt="" />
               Dołącz do lobby
             </span>
+            <img src="/Ikony/NextIcon.svg" className="w-8 h-8 group-hover:translate-x-1 transition-transform opacity-50" alt="" />
           </Button>
 
           <div className="grid grid-cols-2 gap-4 mt-2">

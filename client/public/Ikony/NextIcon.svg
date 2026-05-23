@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="32"
+   height="32"
+   viewBox="0 0 32 32"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <marker
+       style="overflow:visible"
+       id="RoundedArrow"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       markerWidth="0.64999998"
+       markerHeight="0.64999998"
+       viewBox="0 0 1 1"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.7)"
+         d="m -0.21114562,-4.1055728 6.42229122,3.21114561 a 1,1 90 0 1 0,1.78885438 L -0.21114562,4.1055728 A 1.236068,1.236068 31.717474 0 1 -2,3 v -6 a 1.236068,1.236068 148.28253 0 1 1.78885438,-1.1055728 z"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:none"
+         id="path8" />
+    </marker>
+  </defs>
+  <g
+     id="layer1">
+    <rect
+       style="fill:#ededed;stroke:#806600;stroke-width:0.895"
+       id="rect1"
+       width="30.6875"
+       height="30.5"
+       x="0.625"
+       y="0.625"
+       ry="10.21875" />
+    <path
+       style="fill:#ededed;stroke:#806600;stroke-width:2.195;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;marker-end:url(#RoundedArrow)"
+       d="M 6.3429712,16 H 19.999221"
+       id="path1" />
+  </g>
+</svg>

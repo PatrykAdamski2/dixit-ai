@@ -6,8 +6,9 @@ import { PersonalizationView } from "./views/PersonalizationView";
 import { StatisticsView } from "./views/StatisticsView";
 import { HostGameView } from "./views/HostGameView";
 import { JoinLobbyView } from "./views/JoinLobbyView";
+import { GameBoard } from "./views/Gameplay/GameBoard";
 
-// Gameplay Views
+// Podglądy widoków gry (używane przy projektowaniu lub debugowaniu)
 import { NarratorHandView } from "./views/Gameplay/NarratorHandView";
 import { NarratorTurnView } from "./views/Gameplay/NarratorTurnView";
 import { PlayerHandView } from "./views/Gameplay/PlayerHandView";
@@ -29,15 +30,18 @@ export const router = createBrowserRouter([
       { path: "host", Component: HostGameView },
       { path: "join", Component: JoinLobbyView },
       
-      // Gameplay Previews
-      { path: "narrator-hand", Component: NarratorHandView },
-      { path: "narrator-turn", Component: NarratorTurnView },
-      { path: "player-hand", Component: PlayerHandView },
-      { path: "player-turn", Component: PlayerTurnView },
-      { path: "player-vote", Component: PlayerVoteView },
-      { path: "narrator-vote", Component: NarratorVoteView },
-      { path: "round-score", Component: RoundScoreView },
-      { path: "round-end", Component: RoundEndView },
+      // Main Gameplay Route
+      { path: "game", Component: GameBoard },
+      
+      // Previews
+      { path: "preview/narrator-hand", Component: NarratorHandView },
+      { path: "preview/narrator-turn", Component: NarratorTurnView },
+      { path: "preview/player-hand", Component: PlayerHandView },
+      { path: "preview/player-turn", Component: PlayerTurnView },
+      { path: "preview/player-vote", Component: PlayerVoteView },
+      { path: "preview/narrator-vote", Component: NarratorVoteView },
+      { path: "preview/round-score", Component: RoundScoreView },
+      { path: "preview/round-end", Component: RoundEndView },
     ],
   },
 ]);
