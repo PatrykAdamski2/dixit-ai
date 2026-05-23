@@ -17,7 +17,7 @@ export function MainLayout() {
       <PlayfulBackground />
 
       {showBackButton && (
-        <div className="absolute top-6 left-6 z-50">
+        <div className="fixed top-6 left-6 z-50">
           <Button
             variant="outline"
             size="sm"
@@ -30,7 +30,7 @@ export function MainLayout() {
         </div>
       )}
 
-      {/* Main content container with some entrance animation */}
+      {/* Główny kontener na widoki z prostą animacją wejścia */}
       <main className="z-10 w-full max-w-5xl animate-[fade-in_0.3s_ease-out_forwards] mx-auto flex items-center justify-center min-h-[80vh]">
         <Outlet />
       </main>

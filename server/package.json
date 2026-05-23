@@ -5,7 +5,9 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "test": "npm run test:api",
+    "test:api": "cross-env NODE_ENV=test jest --runInBand"
   },
   "repository": {
     "type": "git",
@@ -26,7 +28,10 @@
     "bcrypt": "^5.1.0"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
+    "jest": "^30.0.5",
     "nodemon": "^3.1.14",
-    "prisma": "^7.7.0"
+    "prisma": "^7.7.0",
+    "supertest": "^7.1.1"
   }
 }

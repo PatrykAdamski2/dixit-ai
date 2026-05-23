@@ -1,8 +1,13 @@
 export const ABSTRACT_CARDS = [
-  { id: '1', image: "https://images.unsplash.com/flagged/photo-1567934150921-7632371abb32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMHBhaW50aW5nfGVufDF8fHx8MTc3NjM1ODExMHww&ixlib=rb-4.1.0&q=80&w=1080" },
-  { id: '2', image: "https://images.unsplash.com/photo-1514449372970-c013485804bd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXJyZWFsJTIwbGFuZHNjYXBlfGVufDF8fHx8MTc3NjM1ODExMHww&ixlib=rb-4.1.0&q=80&w=1080" },
-  { id: '3', image: "https://images.unsplash.com/photo-1732996909435-f1918cd4bf8b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkcmVhbXklMjBmYW50YXN5JTIwYXJ0fGVufDF8fHx8MTc3NjM1ODExMHww&ixlib=rb-4.1.0&q=80&w=1080" },
-  { id: '4', image: "https://images.unsplash.com/photo-1657641908545-592c2a8e3b79?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2xvcmZ1bCUyMHNoYXBlcyUyMGJhY2tncm91bmR8ZW58MXx8fHwxNzc2MzU4MTEwfDA&ixlib=rb-4.1.0&q=80&w=1080" },
-  { id: '5', image: "https://images.unsplash.com/photo-1773432661163-351c473345e5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxteXN0aWNhbCUyMGlsbHVzdHJhdGlvbnxlbnwxfHx8fDE3NzYzNTgxMTB8MA&ixlib=rb-4.1.0&q=80&w=1080" },
-  { id: '6', image: "https://images.unsplash.com/photo-1760574734255-70f3eb76e9ce?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aGltc2ljYWwlMjBjaGFyYWN0ZXIlMjBkZXNpZ258ZW58MXx8fHwxNzc2MzU4MTEwfDA&ixlib=rb-4.1.0&q=80&w=1080" }
+  { id: '1', image: "/Karty/KartaNr1.png" },
+  { id: '2', image: "/Karty/KartaNr2.png" },
+  { id: '3', image: "/Karty/KartaNr3.png" },
+  { id: '4', image: "/Karty/KartaNr4.png" },
+  { id: '5', image: "/Karty/KartaNr5.png" },
+  { id: '6', image: "/Karty/KartaNr6.png" }
 ];
+
+export const ALL_LOCAL_CARDS = Array.from({ length: 20 }, (_, i) => ({
+  id: `${i + 1}`,
+  image: `/Karty/KartaNr${i + 1}.png`
+}));
