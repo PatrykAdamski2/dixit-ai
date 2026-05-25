@@ -54,28 +54,52 @@ export function AssociationBox({ text }: { text: string }) {
   );
 }
 
-export function CardGrid({ 
-  cards, 
-  onSelect, 
-  selectedId 
-}: { 
-  cards: { id: string, image?: string }[], 
-  onSelect?: (id: string) => void,
-  selectedId?: string 
+export function CardGrid({
+  cards,
+  onSelect,
+  selectedId,
+  faceDown = false,
+  disabled = false,
+  variant = 'hand',
+}: {
+  cards: { id: string; image?: string }[];
+  onSelect?: (id: string) => void;
+  selectedId?: string;
+  faceDown?: boolean;
+  disabled?: boolean;
+  /** hand = przewijana ręka; table = karty na stole */
+  variant?: 'hand' | 'table';
 }) {
+  const selectable = !!onSelect && !disabled;
+  const inner = cards.map((card) => (
+    <GameCard
+      key={card.id}
+      cardId={card.id}
+      imageUrl={card.image}
+      isBack={faceDown}
+      isSelected={selectedId === card.id}
+      isSelectable={selectable}
+      onClick={() => onSelect?.(card.id)}
+      size={variant === 'table' ? 'md' : 'sm'}
+      className="shrink-0 md:shrink"
+    />
+  ));
+
+  if (variant === 'hand') {
+    return (
+      <div className="w-full max-w-5xl mx-auto px-2 md:px-4 mt-auto mb-6">
+        <div className="overflow-x-auto pb-3 -mx-2 px-2 md:overflow-visible md:pb-0">
+          <div className="flex flex-nowrap md:flex-wrap justify-center gap-3 md:gap-5 min-w-min mx-auto">
+            {inner}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-wrap justify-center gap-6 w-full max-w-5xl mx-auto px-4 mt-auto mb-8">
-      {cards.map((card) => (
-        <GameCard
-          key={card.id}
-          cardId={card.id}
-          imageUrl={card.image}
-          isSelected={selectedId === card.id}
-          isSelectable={!!onSelect}
-          onClick={() => onSelect?.(card.id)}
-          size="md"
-        />
-      ))}
+    <div className="flex flex-wrap justify-center gap-4 md:gap-6 w-full max-w-5xl mx-auto px-4 mt-auto mb-8">
+      {inner}
     </div>
   );
 }

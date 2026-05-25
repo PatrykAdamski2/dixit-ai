@@ -1,12 +1,25 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/Button';
-import { Swords, Users, BarChart3, Palette } from 'lucide-react';
+import { Swords, Users, BarChart3, Palette, LogOut, Sparkles } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
+import { setupDemoLobby, startDemoGame } from '../services/demoLobby';
+import { logoutSession } from '../services/session';
 
 export function MainMenuView() {
   const navigate = useNavigate();
   const user = useGameStore((state) => state.user);
+
+  const handleDemoGame = () => {
+    setupDemoLobby(true);
+    startDemoGame('prompting');
+    navigate('/game');
+  };
+
+  const handleLogout = async () => {
+    await logoutSession();
+    navigate('/');
+  };
 
   return (
     <div className="w-full max-w-lg mx-auto">
@@ -48,28 +61,54 @@ export function MainMenuView() {
             <img src="/Ikony/NextIcon.svg" className="w-8 h-8 group-hover:translate-x-1 transition-transform opacity-50" alt="" />
           </Button>
 
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full flex items-center justify-center gap-3 py-6 rounded-2xl border-dashed border-orange-300 bg-orange-50/50 hover:bg-orange-50"
+            onClick={handleDemoGame}
+          >
+            <Sparkles size={22} className="text-orange-500" />
+            <span className="font-bold text-orange-700">Gra demonstracyjna (bez API)</span>
+          </Button>
+
           <div className="grid grid-cols-2 gap-4 mt-2">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               variant="outline"
-              className="flex flex-col items-center gap-2 h-auto py-6 bg-white/50 border-gray-200 hover:border-gray-400 hover:bg-white"
+              className="relative flex flex-col items-center gap-2 h-auto py-6 bg-white/80 border-gray-200 hover:border-orange-200"
               onClick={() => navigate('/stats')}
             >
               <BarChart3 size={24} className="text-gray-700" />
               <span className="text-gray-800">Statystyki</span>
+              <span className="absolute -top-2 -right-2 text-[10px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full uppercase">
+                Podgląd
+              </span>
             </Button>
 
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               variant="outline"
-              className="flex flex-col items-center gap-2 h-auto py-6 bg-white/50 border-gray-200 hover:border-orange-400 hover:bg-orange-50/50"
+              className="relative flex flex-col items-center gap-2 h-auto py-6 bg-white/80 border-gray-200 hover:border-orange-200"
               onClick={() => navigate('/personalization')}
             >
               <Palette size={24} className="text-orange-500" />
               <span className="text-gray-800">Personalizacja</span>
+              <span className="absolute -top-2 -right-2 text-[10px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full uppercase">
+                Podgląd
+              </span>
             </Button>
           </div>
         </div>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleLogout}
+          className="text-gray-500 hover:text-gray-900 gap-2"
+        >
+          <LogOut size={18} />
+          Wyloguj się
+        </Button>
 
       </div>
     </div>

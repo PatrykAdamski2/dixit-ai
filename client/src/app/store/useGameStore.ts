@@ -16,6 +16,13 @@ export interface Card {
   imageUrl: string;
 }
 
+/** Karta na stole do głosowania — id głosu to submission_id z backendu */
+export interface TableCard {
+  submissionId: string;
+  cardId: string;
+  imageUrl: string;
+}
+
 export interface UserProfile {
   username: string;
   coins: number;
@@ -28,7 +35,9 @@ interface GameState {
 
   // Kod pokoju i aktualna faza gry (np. wybieranie kart, głosowanie)
   roomCode: string | null;
+  gameId: string | null;
   currentPhase: GamePhase;
+  socketError: string | null;
   
   // Lista wszystkich graczy w lobby/grze
   players: Player[];
@@ -37,17 +46,19 @@ interface GameState {
   
   // Stan konkretnej rundy
   myHand: Card[]; // Karty, które mam na ręce
-  tableCards: Card[]; // Karty wyłożone na środek do głosowania
+  tableCards: TableCard[];
   narratorPrompt: string | null; // Hasło wymyślone przez narratora
   timer: number | null; // Czas pozostały do końca fazy (w sekundach)
 
   // Funkcje do aktualizacji stanu
   setUser: (user: UserProfile | null) => void;
   setRoomCode: (code: string | null) => void;
+  setGameId: (id: string | null) => void;
+  setSocketError: (message: string | null) => void;
   setPhase: (phase: GamePhase) => void;
   setPlayers: (players: Player[]) => void;
   setMyHand: (cards: Card[]) => void;
-  setTableCards: (cards: Card[]) => void;
+  setTableCards: (cards: TableCard[]) => void;
   setNarratorPrompt: (prompt: string | null) => void;
   setTimer: (seconds: number | null) => void;
   setMyId: (id: string | null) => void;
@@ -62,7 +73,9 @@ interface GameState {
 const initialState = {
   user: null,
   roomCode: null,
+  gameId: null,
   currentPhase: 'waiting' as GamePhase,
+  socketError: null,
   players: [],
   myId: null,
   narratorId: null,
@@ -77,6 +90,8 @@ export const useGameStore = create<GameState>((set) => ({
 
   setUser: (user) => set({ user }),
   setRoomCode: (roomCode) => set({ roomCode }),
+  setGameId: (gameId) => set({ gameId }),
+  setSocketError: (socketError) => set({ socketError }),
   setPhase: (currentPhase) => set({ currentPhase }),
   setPlayers: (players) => set({ 
     players,
@@ -96,5 +111,10 @@ export const useGameStore = create<GameState>((set) => ({
     return { ...state, ...newState, narratorId: updatedNarratorId };
   }),
 
-  resetGame: () => set(initialState),
+  /** Czyści stan gry; profil użytkownika zostaje (np. powrót z RoundEnd). */
+  resetGame: () =>
+    set((state) => ({
+      ...initialState,
+      user: state.user,
+    })),
 }));
