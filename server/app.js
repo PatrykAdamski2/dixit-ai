@@ -1,32 +1,26 @@
 require('dotenv').config();
-const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-const cookieParser = require('cookie-parser');
 const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 // const { createClient } = require('redis');
 
-//const authRoutes = require('./routes/auth');
+const authRoutes = require('./routes/auth');
+const gameHandler = require('./handlers/gameHandler');
+const { createApp } = require('./appFactory');
 
 // Initialize Redis client (uncomment when Redis server is available)
 // const redisClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
 // redisClient.on('error', (err) => console.log('Redis Client Error', err));
 
-const app = express();
-app.use(express.json());
-app.use(cookieParser());
-
-// app.use('/api/auth', authRoutes);
-
-app.use(express.static('public'));
+const app = createApp();
 
 const server = createServer(app);
 const io = new Server(server);
 
 io.use((socket, next) => {
     try {
-        const cookies = cookie.parseCookie(socket.request.headers.cookie || "");
+        const cookies = cookie.parse(socket.request.headers.cookie || "");
         const token = cookies.token;
 
         if (!token)
@@ -41,9 +35,9 @@ io.use((socket, next) => {
 });
 
 // TODO: Placeholder for game logic
-const gameHandler = (io, socket) => {
-    console.log(`Nowy gracz połączony. ID Gniazda: ${socket.id}`);
-};
+// const gameHandler = (io, socket) => {
+//     console.log(`Nowy gracz połączony. ID Gniazda: ${socket.id}`);
+// };
 
 io.on('connection', (socket) => gameHandler(io, socket));
 
@@ -66,3 +60,5 @@ async function startServer() {
 }
 
 startServer();
+
+module.exports = { app, server, io, startServer };
