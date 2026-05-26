@@ -8,9 +8,6 @@ docs/
 *.md
 !bot/README.md
 
-# Archiwum / duplikat repozytorium
-dixit-ai-main/
-
 # Zależności (instalacja w kontenerze)
 **/node_modules
 **/.venv
