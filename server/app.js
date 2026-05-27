@@ -5,9 +5,10 @@ const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 // const { createClient } = require('redis');
 
-const authRoutes = require('./routes/auth');
 const gameHandler = require('./handlers/gameHandler');
+const lobbyHandler = require('./handlers/lobbyHandler');
 const { createApp } = require('./appFactory');
+const { setIo } = require('./lib/socketBus');
 
 // Initialize Redis client (uncomment when Redis server is available)
 // const redisClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
@@ -16,7 +17,10 @@ const { createApp } = require('./appFactory');
 const app = createApp();
 
 const server = createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: { origin: true, credentials: true },
+});
+setIo(io);
 
 io.use((socket, next) => {
     try {
@@ -39,7 +43,10 @@ io.use((socket, next) => {
 //     console.log(`Nowy gracz połączony. ID Gniazda: ${socket.id}`);
 // };
 
-io.on('connection', (socket) => gameHandler(io, socket));
+io.on('connection', (socket) => {
+    lobbyHandler(io, socket);
+    gameHandler(io, socket);
+});
 
 const PORT = process.env.PORT || 3000;
 

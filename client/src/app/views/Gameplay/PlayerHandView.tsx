@@ -2,41 +2,53 @@ import React, { useState } from 'react';
 import { GameplayHeader, CardGrid, AssociationBox } from '../../components/GameplayComponents';
 import { useGameStore } from '../../store/useGameStore';
 import { Button } from '../../components/Button';
+import { emitSubmitCard } from '../../services/gameSocket';
+import { isDemoGame, advanceDemoAfterCardSubmit } from '../../services/demoLobby';
 
 export function PlayerHandView() {
-  const { myHand, narratorPrompt, timer } = useGameStore();
+  const { myHand, narratorPrompt, timer, socketError } = useGameStore();
   const [selectedCardId, setSelectedCardId] = useState<string | undefined>();
+  const [submitted, setSubmitted] = useState(false);
 
   const handleConfirm = () => {
-    if (!selectedCardId) return;
-    console.log('Player submitted card:', selectedCardId);
+    if (!selectedCardId || submitted) return;
+    if (isDemoGame()) {
+      setSubmitted(true);
+      advanceDemoAfterCardSubmit(selectedCardId);
+      return;
+    }
+    emitSubmitCard(selectedCardId);
+    setSubmitted(true);
   };
 
   return (
-    <div className="w-full h-full flex flex-col items-center max-w-5xl mx-auto pb-8">
-      <GameplayHeader 
-        seconds={timer ?? 30} 
-        roleText="Twój Ruch" 
-        instruction="Wybierz kartę, która najlepiej pasuje do skojarzenia Narratora." 
+    <div className="w-full h-full flex flex-col items-center max-w-5xl mx-auto pb-6 px-2 md:pb-8">
+      {socketError && (
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-center font-bold text-red-600">{socketError}</p>
+      )}
+      <GameplayHeader
+        seconds={timer ?? 30}
+        roleText="Twój Ruch"
+        instruction="Wybierz kartę pasującą do skojarzenia Narratora."
       />
 
-      <AssociationBox text={narratorPrompt || "Brak skojarzenia"} />
+      <AssociationBox text={narratorPrompt || 'Brak skojarzenia'} />
 
-      <div className="mt-4 mb-2 w-full flex-1">
-        <CardGrid 
-          cards={myHand.map(c => ({ id: c.id, image: c.imageUrl }))} 
-          onSelect={setSelectedCardId} 
-          selectedId={selectedCardId} 
-        />
-      </div>
+      <CardGrid
+        cards={myHand.map((c) => ({ id: c.id, image: c.imageUrl }))}
+        onSelect={submitted ? undefined : setSelectedCardId}
+        selectedId={selectedCardId}
+        disabled={submitted}
+        variant="hand"
+      />
 
-      <Button 
+      <Button
         size="lg"
-        disabled={!selectedCardId}
+        disabled={!selectedCardId || submitted}
         onClick={handleConfirm}
-        className="px-12 py-8 rounded-2xl text-xl shadow-2xl shadow-orange-500/20 mt-8"
+        className="px-12 py-6 md:py-8 rounded-2xl text-xl shadow-2xl shadow-orange-500/20 mt-4"
       >
-        Zatwierdź kartę
+        {submitted ? 'Karta wysłana' : 'Zatwierdź kartę'}
       </Button>
     </div>
   );

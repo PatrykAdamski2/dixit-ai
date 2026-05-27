@@ -1,30 +1,19 @@
 import { io, Socket } from 'socket.io-client';
-import { useGameStore, GamePhase, Player, Card } from '../store/useGameStore';
+import { registerGameSocketHandlers } from './gameSocket';
+import { useGameStore } from '../store/useGameStore';
+import { navigateToGameIfNeeded } from './gameNavigation';
+import type { GamePhase, Player } from '../store/useGameStore';
 
-// Instancja socketu. W trybie deweloperskim połączenie idzie przez proxy w Vite.
 export const socket: Socket = io({
   withCredentials: true,
-  autoConnect: false, // Łączymy się ręcznie po zalogowaniu
+  autoConnect: false,
 });
 
-/**
- * Struktura danych przychodzących w evencie gameStateUpdate
- */
-interface GameStateUpdate {
-  phase?: GamePhase;
-  players?: Player[];
-  roomCode?: string;
-  myHand?: Card[];
-  tableCards?: Card[];
-  narratorPrompt?: string;
-  timer?: number;
-}
+let listenersReady = false;
 
-/**
- * Konfiguracja listenerów Socket.io i mapowanie ich na stan w sklepie Zustand.
- */
 export const initSocketListeners = () => {
-  const { setGameState, setTimer } = useGameStore.getState();
+  if (listenersReady) return;
+  listenersReady = true;
 
   socket.on('connect', () => {
     console.log('Połączono z serwerem przez Socket.io');
@@ -34,32 +23,22 @@ export const initSocketListeners = () => {
     console.log('Rozłączono z serwerem Socket.io');
   });
 
-  // Główny event aktualizujący stan gry (faza, gracze, karty na stole itp.)
-  socket.on('gameStateUpdate', (data: GameStateUpdate) => {
-    console.log('Otrzymano gameStateUpdate:', data);
-    setGameState({
-      currentPhase: data.phase,
-      players: data.players,
-      roomCode: data.roomCode,
-      myHand: data.myHand,
-      tableCards: data.tableCards,
-      narratorPrompt: data.narratorPrompt,
-      timer: data.timer,
-    });
-  });
+  registerGameSocketHandlers(socket);
 
-  // Odliczanie czasu sekunda po sekundzie
-  socket.on('timerTick', (seconds: number) => {
-    setTimer(seconds);
-  });
-
-  // Start nowej rundy (można tu zresetować stan specyficzny dla rundy, jeśli trzeba)
-  socket.on('newRound', (data: { roundNumber: number, narratorId: string }) => {
-    console.log('Nowa runda rozpoczęta:', data);
-    // Zustand (setGameState) sam wyciągnie narratorId z listy graczy dzięki naszej logice w storze
-  });
-
-  socket.on('error', (error: any) => {
-    console.error('Socket error:', error);
+  socket.on('lobbyUpdate', (data: {
+    players?: Player[];
+    roomCode?: string;
+    gameId?: string;
+    phase?: GamePhase;
+  }) => {
+    const patch: Record<string, unknown> = {};
+    if (data.players) patch.players = data.players;
+    if (data.roomCode) patch.roomCode = data.roomCode;
+    if (data.gameId) patch.gameId = data.gameId;
+    if (data.phase) patch.currentPhase = data.phase;
+    if (Object.keys(patch).length > 0) {
+      useGameStore.getState().setGameState(patch);
+    }
+    navigateToGameIfNeeded(data.phase);
   });
 };

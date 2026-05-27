@@ -4,19 +4,31 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { Button } from '../../components/Button';
 import { Trophy, Coins } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
+import { emitDisconnectFromGame } from '../../services/gameSocket';
+import { socket } from '../../services/socket';
 
 export function RoundEndView() {
   const navigate = useNavigate();
-  const { players } = useGameStore();
+  const { players, myId, resetGame } = useGameStore();
 
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
   const winner = sortedPlayers[0];
+  const myScore = players.find((p) => p.id === myId)?.score ?? 0;
 
   const chartData = players.length > 0 ? players.map((p, index) => ({
     name: p.username,
     points: p.score,
     fill: p.isBot ? '#6366f1' : ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'][index % 5]
   })) : [];
+
+  const handleBackToMenu = () => {
+    emitDisconnectFromGame();
+    if (socket.connected) {
+      socket.disconnect();
+    }
+    resetGame();
+    navigate('/menu');
+  };
 
   return (
     <div className="w-full h-full flex flex-col items-center max-w-4xl mx-auto py-12 px-4 space-y-8">
@@ -58,7 +70,7 @@ export function RoundEndView() {
 
       <div className="bg-gray-900 text-white rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-2 w-full max-w-md">
         <div className="text-gray-400 font-bold uppercase tracking-widest text-sm">
-          Twoje Punkty: {players.find(p => p.id === 'me')?.score || 0}
+          Twoje Punkty: {myScore}
         </div>
         <div className="flex items-center gap-3 text-3xl font-black text-orange-400">
           <span>+Nagroda</span>
@@ -68,7 +80,7 @@ export function RoundEndView() {
 
       <Button 
         size="lg" 
-        onClick={() => navigate('/menu')}
+        onClick={handleBackToMenu}
         className="w-full max-w-md h-16 text-xl shadow-lg mt-4"
       >
         Wróć do menu

@@ -4,6 +4,7 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Gamepad2, Mail, Lock, User } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
+import { connectSocketAfterLogin } from '../services/session';
 
 export function AuthView() {
   const [isLogin, setIsLogin] = useState(true);
@@ -35,11 +36,17 @@ export function AuthView() {
           // Mapujemy odpowiedź z API na nasz lokalny stan.
           // Uwzględniamy różne formaty (np. login vs username), żeby nie wywaliło się przy zmianach na backendzie.
           // Jeśli API nie zwróci monet lub awatara, ustawiamy bezpieczne wartości domyślne.
+          const username =
+            data.username || data.user?.username || data.user?.login || login;
           setUser({
-            username: data.username || data.user?.username || data.user?.login || login,
+            username,
             coins: data.coins ?? data.user?.coins ?? 0,
-            avatar: data.avatar ?? data.user?.avatar ?? (data.username || login).substring(0, 2).toUpperCase()
+            avatar:
+              data.avatar ??
+              data.user?.avatar ??
+              username.substring(0, 2).toUpperCase(),
           });
+          connectSocketAfterLogin(username);
           navigate('/menu');
         } else {
           setIsLogin(true);
