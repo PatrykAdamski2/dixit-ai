@@ -1,15 +1,12 @@
-/** Współdzielona instancja Socket.io (ustawiana w app.js po utworzeniu serwera). */
-let io = null;
+// Shared Socket.io instance — set once in app.js, used by REST routes to broadcast
+let _io = null;
 
-function setIo(instance) {
-    io = instance;
+function setIo(io) {
+    _io = io;
 }
 
 function getIo() {
-    if (!io) {
-        throw new Error('Socket.io nie zostało zainicjalizowane');
-    }
-    return io;
+    return _io;
 }
 
 module.exports = { setIo, getIo };

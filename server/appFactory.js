@@ -3,6 +3,10 @@ const cookieParser = require('cookie-parser');
 
 const authRoutes = require('./routes/auth');
 const webhookRoutes = require('./routes/webhooks');
+const lobbyRoutes = require('./routes/lobby');
+const statsRoutes = require('./routes/stats');
+const gameRoutes = require('./routes/game');
+const cardRoutes = require('./routes/cards');
 
 function createApp() {
     const app = express();
@@ -11,6 +15,10 @@ function createApp() {
 
     app.use('/api/auth', authRoutes);
     app.use('/api/webhooks', webhookRoutes);
+    app.use('/api/lobby', lobbyRoutes);
+    app.use('/api/stats', statsRoutes);
+    app.use('/api/game', gameRoutes);
+    app.use('/api/cards', cardRoutes);
 
     app.use(express.static('public'));
 
