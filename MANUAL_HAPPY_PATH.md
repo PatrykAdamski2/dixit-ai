@@ -1,6 +1,11 @@
 # Manual Happy Path (3 players)
 
-> Stan na teraz: aplikacja ma działające API rejestracji/logowania oraz UI lobby + widoki gameplay jako **podglądy** (osobne route’y). Nie ma jeszcze spiętej logiki gry multiplayer (brak klientowego socket.io / game state), więc „przejście faz” wykonuje się przez przechodzenie po route’ach.
+> **Nawigacja:** aktualne trasy UI i stan projektu — [docs/MAPOWANIE_KODU.md](docs/MAPOWANIE_KODU.md), [docs/STAN_PROJEKTU.md](docs/STAN_PROJEKTU.md).  
+> **Trasy preview (aktualne):** `/preview/narrator-hand`, `/preview/player-hand`, `/preview/player-vote`, itd. (nie `/narrator-hand`).
+
+> **Stan na teraz:** działa auth + socket (po zalogowaniu). Lobby API na serwerze **brak** — host/join używają trybu **demo** lub pustej listy graczy. Pełna gra multiplayer wymaga backendu z [PLAN_MVP_PODSTAWOWY.md](docs/PLAN_MVP_PODSTAWOWY.md).
+>
+> **Szybki test bez 3 graczy i API:** menu → **Gra demonstracyjna** → `/game` (fazy w jednym widoku).
 
 ## 0) Prerekwizyty
 
@@ -34,7 +39,7 @@ Oczekiwane:
 2. Skopiuj kod lobby (UI pokazuje `A9X2FB`)
 
 Oczekiwane:
-- Można zmienić suwak max graczy (3–8)
+- Można zmienić suwak max graczy (3–8); **Start** wymaga min. 3 graczy w pokoju
 - Można przełączyć warunek końca (punkty/rundy) i limit
 - Lista „Dołączyli Gracze” jest widoczna
 
@@ -47,29 +52,66 @@ Oczekiwane:
 - Przed 6 znakami przycisk jest disabled
 - Po join widok „Poczekalnia: A9X2FB”
 
-## 3) Cztery fazy gry (widoki preview)
+## 3) Fazy gry
 
-> Te fazy są obecnie osobnymi route’ami — nie ma automatycznego przejścia między nimi.
+### A) Tryb demonstracyjny (zalecany bez API lobby)
+
+1. Zaloguj się → `/menu` → **Gra demonstracyjna**
+2. Automatycznie `/game`, faza `prompting`, karty z `mockCards.ts`
+3. Panel **Dev** (prawy dolny róg): przełączanie faz `submitting`, `voting`, `scoring`, `ended`
+
+### B) Podglądy UI (`/preview/*`)
+
+> Osobne route’y z auto-seedem — bez przejścia między graczami.
 
 ### Faza 1 — Narrator wybiera kartę + skojarzenie
-- Wejdź na `/narrator-hand`
+- Wejdź na `/preview/narrator-hand`
 - Wpisz skojarzenie (np. „Kosmiczna odyseja”)
 - Kliknij kartę (powinna się podświetlić / zaznaczyć)
 
 ### Faza 2 — Gracze wybierają kartę
-- Wejdź na `/player-hand`
+- Wejdź na `/preview/player-hand`
 - Kliknij kartę (zaznaczenie)
 
 ### Faza 3 — Głosowanie
-- Gracze: `/player-vote` (wybierz kartę narratora)
-- Narrator/podgląd: `/narrator-vote` (podgląd kart w rundzie)
+- Gracze: `/preview/player-vote` (wybierz kartę narratora)
+- Narrator/podgląd: `/preview/narrator-vote` (podgląd kart w rundzie)
 
 ### Faza 4 — Wynik rundy + koniec gry
-- `/round-score` (wykres punktów rundy)
-- `/round-end` (ekran zwycięzcy + powrót do menu)
+- `/preview/round-score` (wykres punktów rundy)
+- `/preview/round-end` (ekran zwycięzcy + powrót do menu)
+
+## 4) Tylko frontend (bez backendu lobby) — checklista
+
+Wykonaj po `npm run dev` w `client/` (auth może być wyłączony tylko na `/preview/*`).
+
+### Menu i lobby
+- [ ] `/menu` — **Gra demonstracyjna** → `/game`, baner demo, toast nie jest wymagany
+- [ ] `/host` — **Stwórz pokój** → toast „demonstracyjny”, kod 6 znaków, min. 3 graczy do startu
+- [ ] `/host` — **Dodaj AI** → lista rośnie w demo
+- [ ] `/host` — **Rozpocznij grę** → toast (demo vs serwer), przejście na `/game`
+- [ ] `/join` — kod 6 znaków → poczekalnia, skeleton gdy brak graczy, `join_room` (Network → socket)
+
+### Rozgrywka (demo lub Dev)
+- [ ] `/game` w demo: narrator → skojarzenie → submitting → voting → scoring → **Kontynuuj** / **Zakończ grę**
+- [ ] Głosowanie: zaznaczenie karty, przycisk disabled po głosie
+- [ ] Błąd socket (Dev, złe `game_id`) → czerwony banner + toast
+- [ ] `/preview/*` — każda trasa: layout, karty 2:3, brak pustego ekranu
+- [ ] RWD: wąski (~360px), średni (~768px), szeroki — przewijanie ręki w poziomie
+
+### Widoki pomocnicze
+- [ ] `/stats` — mock rankingu + baner API
+- [ ] `/personalization` — mock motywów, lokalny „kup” / „wybierz”
+- [ ] `/preview/round-end` — **Wróć do menu** czyści grę (`resetGame`)
+
+### Build
+- [ ] `cd client && npm run build` — brak błędów TS
 
 ## Aktualne ograniczenia (ważne przy interpretacji wyników)
 
-- Widoki `HostGameView` i `JoinLobbyView` mają hard-coded listy graczy (nie odzwierciedlają realnego stanu serwera).
-- Widoki gameplay są mockami — brak synchronizacji między graczami i brak faktycznego przejścia faz.
-- W `/menu` powitanie jest statyczne (nie pobiera zalogowanego użytkownika).
+- Lobby **nie synchronizuje** 3 przeglądarek bez REST + `lobbyUpdate` z graczami (FE wysyła już `join_room`).
+- Automatyczny host → join → start **bez demo** wymaga backendu z planu MVP.
+- W **trybie demo** cała pętla faz działa lokalnie (`advanceDemoAfter*`); punkty na scoring są symulowane.
+- Produkcja: punkty i kolejne rundy po `gameStateUpdate` / evencie z serwera.
+
+Szczegóły zmian FE: [docs/ZMIANY_FRONTEND.md](docs/ZMIANY_FRONTEND.md).

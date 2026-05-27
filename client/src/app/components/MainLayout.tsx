@@ -3,6 +3,9 @@ import { Outlet, useNavigate, useLocation } from 'react-router';
 import { PlayfulBackground } from './PlayfulBackground';
 import { Button } from './Button';
 import { ArrowLeft } from 'lucide-react';
+import { DevToolsPanel } from './DevToolsPanel';
+import { GameNavigationBridge } from './GameNavigationBridge';
+import { Toaster } from './ui/sonner';
 
 export function MainLayout() {
   const navigate = useNavigate();
@@ -14,6 +17,7 @@ export function MainLayout() {
 
   return (
     <div className="relative min-h-screen font-sans text-gray-900 flex flex-col items-center justify-center p-4">
+      <GameNavigationBridge />
       <PlayfulBackground />
 
       {showBackButton && (
@@ -34,6 +38,8 @@ export function MainLayout() {
       <main className="z-10 w-full max-w-5xl animate-[fade-in_0.3s_ease-out_forwards] mx-auto flex items-center justify-center min-h-[80vh]">
         <Outlet />
       </main>
+      <DevToolsPanel />
+      <Toaster richColors position="top-center" closeButton />
     </div>
   );
 }
