@@ -3,9 +3,11 @@
  * Używa trybu image_b64 — czyta image_data bezpośrednio z Prisma,
  * więc działa nawet gdy karta ma null image_url (seeded cards).
  */
+const fs = require('fs');
+const path = require('path');
 const prisma = require('../config/db');
 
-const getBotUrl = () => process.env.BOT_SERVICE_URL || 'http://localhost:8000';
+const getBotUrl = () => process.env.BOT_SERVICE_URL || 'http://bot:8000';
 
 async function getCardImageB64(cardId) {
     const card = await prisma.cards.findUnique({ where: { id: cardId } });
@@ -20,6 +22,13 @@ async function getCardImageB64(cardId) {
         if (!res.ok) throw new Error(`Failed to fetch image: ${card.image_url} → ${res.status}`);
         const buf = await res.arrayBuffer();
         return Buffer.from(buf).toString('base64');
+    }
+
+    // Ścieżka relatywna — czytaj z dysku (np. /Karty/KartaNr1.png)
+    if (card.image_url) {
+        const filePath = path.join(__dirname, '../public', card.image_url);
+        const data = fs.readFileSync(filePath);
+        return data.toString('base64');
     }
 
     throw new Error(`Card ${cardId} has no image_data and no valid image_url`);

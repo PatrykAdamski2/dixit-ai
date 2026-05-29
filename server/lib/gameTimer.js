@@ -11,19 +11,25 @@ const PHASE_DURATIONS = {
 
 const timers = new Map(); // gameId → intervalId
 
-function startPhaseTimer(io, gameId, phase) {
+function startPhaseTimer(io, gameId, phase, onExpire = null) {
     clearPhaseTimer(gameId);
 
     const duration = PHASE_DURATIONS[phase] ?? 60;
     let secondsLeft = duration;
 
-    // Emituj natychmiast, potem co sekundę
-    io.to(gameId).emit('timerTick', { seconds_left: duration, phase });
+    // FE oczekuje liczby (seconds: number), nie obiektu
+    io.to(gameId).emit('timerTick', duration);
 
     const intervalId = setInterval(() => {
         secondsLeft--;
-        io.to(gameId).emit('timerTick', { seconds_left: secondsLeft, phase });
-        if (secondsLeft <= 0) clearPhaseTimer(gameId);
+        io.to(gameId).emit('timerTick', secondsLeft);
+        if (secondsLeft <= 0) {
+            clearPhaseTimer(gameId);
+            if (onExpire) {
+                Promise.resolve(onExpire()).catch(err =>
+                    console.error(`[Timer] onExpire error game=${gameId} phase=${phase}:`, err));
+            }
+        }
     }, 1000);
 
     timers.set(gameId, intervalId);

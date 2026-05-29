@@ -119,14 +119,19 @@ export function registerGameSocketHandlers(sock: Socket) {
     });
   });
 
-  sock.on('new_round', () => {
+  sock.on('new_round', (payload: { narrator_player_id?: string; round_number?: number } = {}) => {
     get().setGameState({
       currentPhase: 'prompting',
       tableCards: [],
       narratorPrompt: null,
       lastRoundScores: {},
+      narratorId: payload?.narrator_player_id ? String(payload.narrator_player_id) : get().narratorId,
       socketError: null,
     });
+  });
+
+  sock.on('hand_updated', (payload: { hand: Array<{ id?: string | number; image_url?: string }> }) => {
+    get().setMyHand((payload.hand ?? []).map(mapServerCard));
   });
 
   sock.on('game_over', () => {
