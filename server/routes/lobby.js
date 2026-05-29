@@ -86,6 +86,7 @@ router.post('/create', auth, async (req, res) => {
             const preferred = await prisma.card_sets.findFirst({ where: { name: 'Dixit Classic' } });
             const fallback = preferred ?? await prisma.card_sets.findFirst();
             activeSetId = fallback?.id ?? null;
+            console.log('[Lobby] create activeSetId:', activeSetId, 'name:', (preferred ?? fallback)?.name);
         }
 
         // Utwórz pokój i dodaj hosta jako room_player w jednej transakcji
