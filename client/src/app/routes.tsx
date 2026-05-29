@@ -11,6 +11,7 @@ import { HostGameView } from "./views/HostGameView";
 import { JoinLobbyView } from "./views/JoinLobbyView";
 import { GameBoard } from "./views/Gameplay/GameBoard";
 import { MyCardsView } from "./views/MyCardsView";
+import { PsychoProfileView } from "./views/PsychoProfileView";
 
 function withAuth(Component: React.ComponentType) {
   return function ProtectedRoute() {
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
       { path: "menu", Component: withAuth(MainMenuView) },
       { path: "personalization", Component: withAuth(PersonalizationView) },
       { path: "stats", Component: withAuth(StatisticsView) },
+      { path: "psycho-profile", Component: withAuth(PsychoProfileView) },
       { path: "host", Component: withAuth(HostGameView) },
       { path: "join", Component: withAuth(JoinLobbyView) },
       { path: "game", Component: withAuth(GameBoard) },

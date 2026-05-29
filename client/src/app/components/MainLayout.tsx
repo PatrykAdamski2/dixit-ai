@@ -11,8 +11,9 @@ export function MainLayout() {
   const location = useLocation();
 
   const isAuth = location.pathname === '/';
+  const isMenu = location.pathname === '/menu';
 
-  const showBackButton = !isAuth;
+  const showBackButton = !isAuth && !isMenu;
 
   return (
     <div className="relative min-h-screen font-sans text-gray-900 flex flex-col items-center justify-center p-4">

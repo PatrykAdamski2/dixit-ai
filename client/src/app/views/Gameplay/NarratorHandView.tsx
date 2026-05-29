@@ -25,9 +25,9 @@ export function NarratorHandView() {
         <p className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-center font-bold text-red-600">{socketError}</p>
       )}
       <GameplayHeader
-        seconds={timer ?? undefined}
+        seconds={timer ?? 40}
         roleText="Jesteś Narratorem"
-        instruction="Wybierz 1 kartę i wpisz skojarzenie (maks. 8 słów)."
+        instruction="Wybierz 1 kartę i wpisz skojarzenie — nie może być zbyt oczywiste (maks. 8 słów)."
       />
 
       <div className="w-full max-w-xl mx-auto my-6 md:my-8 px-2 space-y-4">

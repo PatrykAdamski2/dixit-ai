@@ -23,7 +23,7 @@ export function PlayerHandView() {
       <GameplayHeader
         seconds={timer ?? 30}
         roleText="Twój Ruch"
-        instruction="Wybierz kartę pasującą do skojarzenia Narratora."
+        instruction="Wybierz jedną kartę, która najlepiej pasuje do hasła narratora."
       />
 
       <AssociationBox text={narratorPrompt || 'Brak skojarzenia'} />

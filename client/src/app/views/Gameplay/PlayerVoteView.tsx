@@ -23,7 +23,7 @@ export function PlayerVoteView() {
       <GameplayHeader
         seconds={timer ?? 20}
         roleText="Głosowanie"
-        instruction="Wskaż kartę Narratora. Po głosie wybór zostaje zablokowany."
+        instruction="Odgadnij kartę narratora — po oddaniu głosu nie możesz go zmienić."
       />
 
       <AssociationBox text={narratorPrompt || 'Brak skojarzenia'} />

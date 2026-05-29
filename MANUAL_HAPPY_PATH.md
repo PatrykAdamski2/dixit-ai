@@ -1,117 +1,108 @@
 # Manual Happy Path (3 players)
 
-> **Nawigacja:** aktualne trasy UI i stan projektu — [docs/MAPOWANIE_KODU.md](docs/MAPOWANIE_KODU.md), [docs/STAN_PROJEKTU.md](docs/STAN_PROJEKTU.md).  
-> **Trasy preview (aktualne):** `/preview/narrator-hand`, `/preview/player-hand`, `/preview/player-vote`, itd. (nie `/narrator-hand`).
-
-> **Stan na teraz:** działa auth + socket (po zalogowaniu). Lobby API na serwerze **brak** — host/join używają trybu **demo** lub pustej listy graczy. Pełna gra multiplayer wymaga backendu z [PLAN_MVP_PODSTAWOWY.md](docs/PLAN_MVP_PODSTAWOWY.md).
->
-> **Szybki test bez 3 graczy i API:** menu → **Gra demonstracyjna** → `/game` (fazy w jednym widoku).
+> **Nawigacja:** [docs/MAPOWANIE_KODU.md](docs/MAPOWANIE_KODU.md), [docs/STAN_PROJEKTU.md](docs/STAN_PROJEKTU.md).  
+> **Wymaga:** działający backend (`:3000`), frontend (`:5173`), seed kart (`npm run seed` w `server/`).
 
 ## 0) Prerekwizyty
 
-- Backend działa na `http://localhost:3000`
-- Frontend (Vite) działa na `http://localhost:5173`
-- W `server/.env` ustawione jest `DATABASE_URL` i `JWT_SECRET`
-- (Opcjonalnie) testowa baza Postgres w WSL: `dixit_ai_test` + user `dixit_test`
+- `docker compose -f docker-compose.dev.yml up --build` **lub** lokalnie server + client
+- W `.env`: `DATABASE_URL`, `JWT_SECRET`
+- Seed wykonany — talia w bazie
 
 ## 1) Logowanie 3 graczy (oddzielne przeglądarki)
 
-Otwórz trzy niezależne sesje (np. Chrome, Firefox, Edge albo 1x incognito + 2x normal).
+Otwórz trzy niezależne sesje (np. Chrome, Firefox, Edge albo profil normalny + 2× incognito).
 
 Dla każdego gracza:
+
 1. Wejdź na `http://localhost:5173/`
-2. Kliknij **Zarejestruj nowe konto**
-3. Utwórz konto:
-   - Gracz A: login `happyA`, email `happyA@example.com`, hasło `secret123`
-   - Gracz B: login `happyB`, email `happyB@example.com`, hasło `secret123`
-   - Gracz C: login `happyC`, email `happyC@example.com`, hasło `secret123`
-4. Zaloguj się tym loginem i hasłem
+2. **Zarejestruj nowe konto** (lub użyj istniejącego)
+   - Gracz A: `happyA` / `happyA@example.com` / `secret123`
+   - Gracz B: `happyB` / `happyB@example.com` / `secret123`
+   - Gracz C: `happyC` / `happyC@example.com` / `secret123`
+3. Zaloguj się
 
 Oczekiwane:
-- Po loginie redirect do `/menu`
-- W DevTools → Application/Storage widać cookie `token` (httpOnly)
-- (Opcjonalnie) w konsoli przeglądarki: `fetch('/api/auth/me').then(r=>r.json())` zwraca `username` i `id`
+
+- Redirect do `/menu`
+- Cookie `token` (httpOnly)
+- W konsoli po loginie: połączenie Socket.io (jeśli `socket.connect()` w sesji)
 
 ## 2) Lobby (Host + Join)
 
 ### Host (Gracz A)
-1. `/menu` → **Stwórz nową grę**
-2. Skopiuj kod lobby (UI pokazuje `A9X2FB`)
 
-Oczekiwane:
-- Można zmienić suwak max graczy (3–8); **Start** wymaga min. 3 graczy w pokoju
-- Można przełączyć warunek końca (punkty/rundy) i limit
-- Lista „Dołączyli Gracze” jest widoczna
+1. `/menu` → **Stwórz nową grę**
+2. **Stwórz pokój** — pojawia się kod 6 znaków (np. `A9X2FB`)
+3. Opcjonalnie: **Dodaj AI** (bot przez API), aby mieć ≥3 graczy szybciej
+4. Upewnij się, że na liście jest **co najmniej 3 graczy**
+5. **Rozpocznij grę** → przejście na `/game`, toast o uruchomieniu
 
 ### Join (Gracz B i C)
+
 1. `/menu` → **Dołącz do lobby**
-2. Wpisz `A9X2FB` (6 znaków)
-3. Kliknij **Dołącz do gry**
+2. Wpisz ten sam kod (6 znaków) → **Dołącz do gry**
+3. Poczekalnia — lista graczy aktualizuje się przez `lobbyUpdate`
 
-Oczekiwane:
-- Przed 6 znakami przycisk jest disabled
-- Po join widok „Poczekalnia: A9X2FB”
+Oczekiwane u wszystkich po starcie hosta:
 
-## 3) Fazy gry
+- Event `game_started` (socket)
+- Przekierowanie / wejście na `/game`
+- Faza przechodzi z `waiting` do `prompting` po `connected_to_game`
 
-### A) Tryb demonstracyjny (zalecany bez API lobby)
+## 3) Pełna runda (3 graczy)
 
-1. Zaloguj się → `/menu` → **Gra demonstracyjna**
-2. Automatycznie `/game`, faza `prompting`, karty z `mockCards.ts`
-3. Panel **Dev** (prawy dolny róg): przełączanie faz `submitting`, `voting`, `scoring`, `ended`
+Kolejność zależy od losowego narratora.
 
-### B) Podglądy UI (`/preview/*`)
+### Narrator
 
-> Osobne route’y z auto-seedem — bez przejścia między graczami.
+1. Widok ręki + pole skojarzenia (max ~8 słów)
+2. Wybierz kartę, wpisz skojarzenie, zatwierdź → `submit_prompt`
 
-### Faza 1 — Narrator wybiera kartę + skojarzenie
-- Wejdź na `/preview/narrator-hand`
-- Wpisz skojarzenie (np. „Kosmiczna odyseja”)
-- Kliknij kartę (powinna się podświetlić / zaznaczyć)
+### Pozostali gracze
 
-### Faza 2 — Gracze wybierają kartę
-- Wejdź na `/preview/player-hand`
-- Kliknij kartę (zaznaczenie)
+1. Faza `submitting` — wybór jednej karty → `submit_card`
+2. Faza `voting` — głos na kartę (nie własną) → `submit_vote`
 
-### Faza 3 — Głosowanie
-- Gracze: `/preview/player-vote` (wybierz kartę narratora)
-- Narrator/podgląd: `/preview/narrator-vote` (podgląd kart w rundzie)
+### Po rundzie
 
-### Faza 4 — Wynik rundy + koniec gry
-- `/preview/round-score` (wykres punktów rundy)
-- `/preview/round-end` (ekran zwycięzcy + powrót do menu)
+1. Faza `scoring` — wykres punktów rundy (`round_ended`)
+2. Kolejna runda — `new_round` → z powrotem `prompting` (sprawdź, czy ręka się odświeża — znana luka FE)
+3. Gra do `game_over` → ekran końca → **Wróć do menu**
 
-## 4) Tylko frontend (bez backendu lobby) — checklista
+## 4) Checklist akceptacji
 
-Wykonaj po `npm run dev` w `client/` (auth może być wyłączony tylko na `/preview/*`).
+### Lobby
 
-### Menu i lobby
-- [ ] `/menu` — **Gra demonstracyjna** → `/game`, baner demo, toast nie jest wymagany
-- [ ] `/host` — **Stwórz pokój** → toast „demonstracyjny”, kod 6 znaków, min. 3 graczy do startu
-- [ ] `/host` — **Dodaj AI** → lista rośnie w demo
-- [ ] `/host` — **Rozpocznij grę** → toast (demo vs serwer), przejście na `/game`
-- [ ] `/join` — kod 6 znaków → poczekalnia, skeleton gdy brak graczy, `join_room` (Network → socket)
+- [ ] Host tworzy pokój z kodem 6 znaków
+- [ ] B i C dołączają tym samym kodem
+- [ ] Lista graczy zsynchronizowana u wszystkich
+- [ ] Start możliwy przy ≥3 graczach
+- [ ] Po starcie wszyscy na `/game` bez ręcznego Dev
 
-### Rozgrywka (demo lub Dev)
-- [ ] `/game` w demo: narrator → skojarzenie → submitting → voting → scoring → **Kontynuuj** / **Zakończ grę**
-- [ ] Głosowanie: zaznaczenie karty, przycisk disabled po głosie
-- [ ] Błąd socket (Dev, złe `game_id`) → czerwony banner + toast
-- [ ] `/preview/*` — każda trasa: layout, karty 2:3, brak pustego ekranu
-- [ ] RWD: wąski (~360px), średni (~768px), szeroki — przewijanie ręki w poziomie
+### Rozgrywka
 
-### Widoki pomocnicze
-- [ ] `/stats` — mock rankingu + baner API
-- [ ] `/personalization` — mock motywów, lokalny „kup” / „wybierz”
-- [ ] `/preview/round-end` — **Wróć do menu** czyści grę (`resetGame`)
+- [ ] Narrator: hasło + karta
+- [ ] Pozostali: karta + głos
+- [ ] Wynik rundy widoczny
+- [ ] Kolejne rundy (rotacja narratora)
+- [ ] Koniec partii i powrót do menu
+
+### Opcjonalnie
+
+- [ ] `/stats` — ranking z API (może być pusty)
+- [ ] `/my-cards` — upload / zapis karty
+- [ ] `/personalization` — komunikat o braku API (jeśli BE nie wdrożony)
 
 ### Build
-- [ ] `cd client && npm run build` — brak błędów TS
 
-## Aktualne ograniczenia (ważne przy interpretacji wyników)
+- [ ] `cd client && npm run build` — bez błędów TS
+- [ ] `cd server && npm run test:api` — przy skonfigurowanej bazie testowej
 
-- Lobby **nie synchronizuje** 3 przeglądarek bez REST + `lobbyUpdate` z graczami (FE wysyła już `join_room`).
-- Automatyczny host → join → start **bez demo** wymaga backendu z planu MVP.
-- W **trybie demo** cała pętla faz działa lokalnie (`advanceDemoAfter*`); punkty na scoring są symulowane.
-- Produkcja: punkty i kolejne rundy po `gameStateUpdate` / evencie z serwera.
+## Znane ograniczenia (przy interpretacji wyników)
 
-Szczegóły zmian FE: [docs/ZMIANY_FRONTEND.md](docs/ZMIANY_FRONTEND.md).
+- Po `new_round` frontend może **nie** odświeżyć ręki — obserwuj w długiej grze.
+- `game_over` nie mapuje jeszcze pełnego payloadu wyników do wykresu końcowego.
+- Odświeżenie strony w trakcie partii — brak automatycznego reconnectu (`GET /api/game/:id`).
+
+Szczegóły: [docs/ZMIANY_FRONTEND.md](docs/ZMIANY_FRONTEND.md).
