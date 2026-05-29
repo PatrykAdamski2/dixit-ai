@@ -7,6 +7,8 @@ const lobbyRoutes = require('./routes/lobby');
 const statsRoutes = require('./routes/stats');
 const gameRoutes = require('./routes/game');
 const cardRoutes = require('./routes/cards');
+const personalizationRoutes = require('./routes/personalization');
+const userRoutes = require('./routes/user');
 
 function createApp() {
     const app = express();
@@ -19,6 +21,8 @@ function createApp() {
     app.use('/api/stats', statsRoutes);
     app.use('/api/game', gameRoutes);
     app.use('/api/cards', cardRoutes);
+    app.use('/api/personalization', personalizationRoutes);
+    app.use('/api/user', userRoutes);
 
     app.use(express.static('public'));
 
