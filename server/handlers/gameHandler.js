@@ -1,5 +1,6 @@
 const prisma = require('../config/db');
 const { calculateScores } = require('../lib/scoring');
+const { startPhaseTimer, clearPhaseTimer } = require('../lib/gameTimer');
 
 const HAND_SIZE = 6; // docelowa liczba kart w ręce
 
@@ -152,6 +153,7 @@ module.exports = (io, socket) => {
                 prompt,
                 narrator_player_id: socket.player_id
             });
+            startPhaseTimer(io, socket.game_id, 'submitting');
         } catch (err) {
             console.error(err);
             socket.emit('error', { message: 'Błąd podczas przesyłania hasła' });
@@ -222,6 +224,7 @@ module.exports = (io, socket) => {
                     .sort(() => Math.random() - 0.5);
 
                 io.to(socket.game_id).emit('start_voting', { cards: shuffledCards });
+                startPhaseTimer(io, socket.game_id, 'voting');
             }
         } catch (err) {
             console.error(err);
@@ -377,6 +380,7 @@ async function _endRound(io, gameId, round, allPlayers) {
     const gameOver = isGameOver(game.rooms, updatedTotals);
 
     if (gameOver || (game.rooms.end_condition === 'rounds' && game.current_round >= game.rooms.round_limit)) {
+        clearPhaseTimer(gameId);
         // Zakończ grę
         await prisma.$transaction(async (tx) => {
             await tx.games.update({
@@ -407,7 +411,7 @@ async function _endRound(io, gameId, round, allPlayers) {
                     data: { rank: i + 1 }
                 });
 
-                const isWinner = gs.score === maxScore && i === 0;
+                const isWinner = gs.score === maxScore; // remis = współdzielone zwycięstwo
                 const existingStat = await tx.user_stats.findFirst({ where: { user_id: userId } });
                 if (existingStat) {
                     await tx.user_stats.update({
@@ -487,4 +491,5 @@ async function _endRound(io, gameId, round, allPlayers) {
         narrator_player_id: nextNarrator.id,
         status: 'prompting'
     });
+    startPhaseTimer(io, gameId, 'prompting');
 }

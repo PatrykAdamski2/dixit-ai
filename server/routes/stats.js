@@ -86,4 +86,72 @@ router.get('/game/:id', auth, async (req, res) => {
     }
 });
 
+// GET /api/stats/my-games — historia zakończonych gier zalogowanego gracza
+// Zwraca: [{game_id, started_at, ended_at, total_rounds, score, rank, players:[{username,is_bot,score,rank}]}]
+router.get('/my-games', auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+        const offset = parseInt(req.query.offset) || 0;
+
+        // Znajdź wszystkich room_players tego usera
+        const playerRecords = await prisma.room_players.findMany({
+            where: { user_id: userId },
+            select: { id: true, room_id: true }
+        });
+        const playerIds = playerRecords.map(p => p.id);
+
+        if (!playerIds.length) return res.json([]);
+
+        // Znajdź wyniki z zakończonych gier gdzie gracz brał udział
+        const myScores = await prisma.game_scores.findMany({
+            where: {
+                player_id: { in: playerIds },
+                games: { status: 'finished' }
+            },
+            include: {
+                games: {
+                    select: {
+                        id: true,
+                        started_at: true,
+                        ended_at: true,
+                        current_round: true,
+                        game_scores: {
+                            orderBy: { score: 'desc' },
+                            include: {
+                                room_players: {
+                                    include: { users: { select: { username: true } } }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { games: { ended_at: 'desc' } },
+            take: limit,
+            skip: offset
+        });
+
+        const result = myScores.map(gs => ({
+            game_id: gs.game_id,
+            started_at: gs.games.started_at,
+            ended_at: gs.games.ended_at,
+            total_rounds: gs.games.current_round,
+            score: gs.score,
+            rank: gs.rank,
+            players: gs.games.game_scores.map(s => ({
+                username: s.room_players.users?.username ?? null,
+                is_bot: s.room_players.is_bot,
+                score: s.score,
+                rank: s.rank
+            }))
+        }));
+
+        return res.json(result);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Błąd pobierania historii gier' });
+    }
+});
+
 module.exports = router;
