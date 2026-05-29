@@ -11,6 +11,7 @@ services:
       - .env
     environment:
       - NODE_ENV=development
+      - BOT_SERVICE_URL=http://bot:8000
 
     command: sh -c "npm install && npx prisma db pull && npx prisma generate && npm run dev"
 

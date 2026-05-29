@@ -6,6 +6,7 @@ import { PlayerVoteView } from './PlayerVoteView';
 import { RoundScoreView } from './RoundScoreView';
 import { RoundEndView } from './RoundEndView';
 import { NarratorTurnView } from './NarratorTurnView';
+import { NarratorVoteView } from './NarratorVoteView';
 import { emitConnectToGame } from '../../services/gameSocket';
 
 /**
@@ -57,7 +58,7 @@ export function GameBoard() {
       return (
         <>
           {errorBanner}
-          {isNarrator ? <NarratorTurnView /> : <PlayerVoteView />}
+          {isNarrator ? <NarratorVoteView /> : <PlayerVoteView />}
         </>
       );
 

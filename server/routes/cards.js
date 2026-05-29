@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const multer = require('multer');
 const authenticateToken = require('../middleware/auth');
 const prisma = require('../config/db');
@@ -116,6 +117,14 @@ router.get('/:id/image', async (req, res) => {
         // Fallback: absolutny URL (redirect)
         if (card.image_url?.startsWith('http')) {
             return res.redirect(302, card.image_url);
+        }
+
+        // Fallback: relatywna ścieżka do pliku statycznego (np. /Karty/KartaNr1.png)
+        if (card.image_url) {
+            const filePath = path.join(__dirname, '../public', card.image_url);
+            return res.sendFile(filePath, err => {
+                if (err) res.status(404).json({ error: 'Brak danych obrazka' });
+            });
         }
 
         return res.status(404).json({ error: 'Brak danych obrazka' });

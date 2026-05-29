@@ -79,12 +79,13 @@ router.post('/create', auth, async (req, res) => {
         }
         if (!code) return res.status(500).json({ error: 'Nie można wygenerować kodu pokoju' });
 
-        // Użyj domyślnego zestawu kart jeśli jest (lub pierwszego dostępnego)
+        // Użyj domyślnego zestawu kart — preferuj "Dixit Classic", fallback na pierwszy dostępny
         const defaultSetId = process.env.DEFAULT_CARD_SET_ID || null;
         let activeSetId = defaultSetId;
         if (!activeSetId) {
-            const firstSet = await prisma.card_sets.findFirst();
-            activeSetId = firstSet?.id ?? null;
+            const preferred = await prisma.card_sets.findFirst({ where: { name: 'Dixit Classic' } });
+            const fallback = preferred ?? await prisma.card_sets.findFirst();
+            activeSetId = fallback?.id ?? null;
         }
 
         // Utwórz pokój i dodaj hosta jako room_player w jednej transakcji
@@ -270,7 +271,8 @@ router.post('/start', auth, async (req, res) => {
         const io = getIo();
         if (io) {
             io.to(`lobby:${room.code}`).emit('game_started', { gameId });
-            startPhaseTimer(io, gameId, 'prompting');
+            startPhaseTimer(io, gameId, 'prompting',
+                () => botOrchestrator.handlePromptingExpiry(io, gameId));
 
             // Jeśli narrator rundy 1 to bot — zadziała dopiero po hotfixie (narrator = człowiek),
             // ale zostawiamy trigger na wypadek gdyby wszyscy gracze byli botami

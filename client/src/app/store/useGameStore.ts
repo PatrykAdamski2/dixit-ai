@@ -105,11 +105,17 @@ export const useGameStore = create<GameState>((set) => ({
   setTimer: (timer) => set({ timer }),
   setMyId: (myId) => set({ myId }),
   setGameState: (newState) => set((state) => {
-    // Przy aktualizacji graczy od razu wyciągamy ID narratora dla wygody
-    const updatedNarratorId = newState.players 
-      ? newState.players.find(p => p.isNarrator)?.id || null 
-      : state.narratorId;
-      
+    let updatedNarratorId: string | null;
+    if (newState.players) {
+      // players przekazane — wyciągnij narratora z listy
+      updatedNarratorId = newState.players.find(p => p.isNarrator)?.id || null;
+    } else if ('narratorId' in newState) {
+      // narratorId jawnie przekazane (np. z connected_to_game / new_round)
+      updatedNarratorId = newState.narratorId ?? null;
+    } else {
+      // nic nie zmieniono
+      updatedNarratorId = state.narratorId;
+    }
     return { ...state, ...newState, narratorId: updatedNarratorId };
   }),
 
