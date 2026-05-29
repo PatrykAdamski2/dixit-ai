@@ -4,8 +4,6 @@ import { Copy, Flag, Trophy, Settings2, Bot, Plus } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { useGameStore } from '../store/useGameStore';
-import { ApiPendingBanner } from '../components/ApiPendingBanner';
-import { DemoModeBanner } from '../components/DemoModeBanner';
 import { LobbyPlayerList } from '../components/LobbyPlayerList';
 import { DEFAULT_LOBBY_SETTINGS } from '../services/api';
 import {
@@ -13,28 +11,24 @@ import {
   createLobby,
   startLobbyGame,
   addLobbyBot,
-  isDemoLobbySession,
 } from '../services/lobbyApi';
-import { startDemoGame } from '../services/demoLobby';
-import { notifyInfo, notifySuccess } from '../services/socketNotify';
+import { notifyError, notifySuccess } from '../services/socketNotify';
 
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS_CAP = 8;
 
 export function HostGameView() {
   const navigate = useNavigate();
-  const { players: storePlayers, roomCode, gameId, myId } = useGameStore();
+  const { players: storePlayers, roomCode, myId } = useGameStore();
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [endCondition, setEndCondition] = useState<'points' | 'rounds'>('points');
   const [endLimit, setEndLimit] = useState(30);
   const [creating, setCreating] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
-  const [lobbyIsDemo, setLobbyIsDemo] = useState(false);
 
   const hasRoom = !!roomCode && roomCode !== '------';
   const lobbyCode = hasRoom ? roomCode! : '------';
-  const isDemo = isDemoLobbySession() || lobbyIsDemo;
   const playerCount = storePlayers.length;
   const canStart = hasRoom && playerCount >= MIN_PLAYERS;
 
@@ -42,9 +36,15 @@ export function HostGameView() {
     const loadSettings = async () => {
       const data = await fetchLobbyDefaultSettings();
       if (data) {
-        setMaxPlayers(Math.min(MAX_PLAYERS_CAP, Math.max(MIN_PLAYERS, data.maxPlayers)));
-        setEndCondition(data.endCondition);
-        setEndLimit(data.endLimit);
+        const max = Number(data.maxPlayers);
+        const limit = Number(data.endLimit);
+        setMaxPlayers(
+          Number.isFinite(max)
+            ? Math.min(MAX_PLAYERS_CAP, Math.max(MIN_PLAYERS, max))
+            : DEFAULT_LOBBY_SETTINGS.maxPlayers
+        );
+        setEndCondition(data.endCondition ?? DEFAULT_LOBBY_SETTINGS.endCondition);
+        setEndLimit(Number.isFinite(limit) ? limit : DEFAULT_LOBBY_SETTINGS.endLimit);
       } else {
         setMaxPlayers(DEFAULT_LOBBY_SETTINGS.maxPlayers);
         setEndCondition(DEFAULT_LOBBY_SETTINGS.endCondition);
@@ -54,10 +54,6 @@ export function HostGameView() {
     loadSettings();
   }, []);
 
-  useEffect(() => {
-    if (gameId === 'demo-game-id') setLobbyIsDemo(true);
-  }, [gameId]);
-
   const handleCopy = () => {
     if (hasRoom) navigator.clipboard.writeText(lobbyCode);
   };
@@ -65,8 +61,11 @@ export function HostGameView() {
   const handleCreateRoom = async () => {
     setCreating(true);
     setStartError(null);
-    const result = await createLobby({ maxPlayers, endCondition, endLimit });
-    setLobbyIsDemo(result.source === 'demo');
+    try {
+      await createLobby({ maxPlayers, endCondition, endLimit });
+    } catch {
+      notifyError('Nie udało się utworzyć pokoju. Sprawdź połączenie z backendem.');
+    }
     setCreating(false);
   };
 
@@ -74,27 +73,8 @@ export function HostGameView() {
     if (!hasRoom) return;
     const ok = await addLobbyBot(lobbyCode);
     if (!ok) {
-      const { players, setPlayers } = useGameStore.getState();
-      if (players.length < maxPlayers) {
-        setPlayers([
-          ...players,
-          {
-            id: `demo-bot-${players.length}`,
-            username: `DixitBot_${players.length}`,
-            score: 0,
-            isNarrator: false,
-            isConnected: true,
-            isBot: true,
-          },
-        ]);
-      }
+      notifyError('Nie udało się dodać bota.');
     }
-  };
-
-  const goToDemoGame = () => {
-    notifyInfo('Przechodzisz do gry demonstracyjnej.');
-    startDemoGame('prompting');
-    navigate('/game');
   };
 
   const handleStartGame = async () => {
@@ -107,32 +87,23 @@ export function HostGameView() {
     const currentGameId = useGameStore.getState().gameId;
     const resolvedId = serverGameId ?? currentGameId;
 
-    if (ok && resolvedId && resolvedId !== 'demo-game-id') {
+    if (ok && resolvedId) {
       notifySuccess('Gra uruchomiona na serwerze — łączenie z pokojem gry.');
       navigate('/game');
       setStarting(false);
       return;
     }
 
-    notifyInfo(
-      'Backend lobby niedostępny lub gra nie została utworzona — uruchamiam tryb demonstracyjny (lokalne fazy i punkty).'
-    );
-    startDemoGame('prompting');
-    navigate('/game');
+    setStartError('Nie udało się uruchomić gry. Spróbuj ponownie za chwilę.');
     setStarting(false);
   };
 
   return (
     <div className="w-full max-w-xl mx-auto px-4 py-8 relative">
       <div className="bg-white/95 backdrop-blur-xl border border-gray-100 rounded-[2.5rem] shadow-2xl p-8 md:p-12 space-y-10">
-        <ApiPendingBanner feature="Lobby (kod pokoju, boty, start gry)" />
-        {isDemo && hasRoom && <DemoModeBanner context="lobby" />}
         {startError && (
           <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 border border-amber-200">
-            {startError}{' '}
-            <button type="button" className="underline font-bold" onClick={goToDemoGame}>
-              Uruchom tryb demo
-            </button>
+            {startError}
           </p>
         )}
         <div className="text-center space-y-4">
@@ -144,10 +115,8 @@ export function HostGameView() {
           </h1>
           <p className="text-gray-500 font-medium">
             {hasRoom
-              ? isDemo
-                ? 'Kod demonstracyjny — dodaj boty i zacznij grę lokalnie (min. 3 graczy).'
-                : 'Udostępnij kod znajomym; po starcie gra przejdzie na serwer.'
-              : 'Utwórz pokój — bez API powstanie kod demo z join_room na socket.'}
+              ? 'Udostępnij kod znajomym; po starcie gra przejdzie na serwer.'
+              : 'Utwórz pokój, aby zaprosić graczy do lobby.'}
           </p>
         </div>
 
@@ -247,7 +216,10 @@ export function HostGameView() {
               <Input
                 type="number"
                 value={endLimit}
-                onChange={(e) => setEndLimit(parseInt(e.target.value, 10) || 0)}
+                onChange={(e) => {
+                const next = parseInt(e.target.value, 10);
+                setEndLimit(Number.isFinite(next) ? next : DEFAULT_LOBBY_SETTINGS.endLimit);
+              }}
                 className="w-24 text-center font-bold text-lg h-10"
               />
             </div>

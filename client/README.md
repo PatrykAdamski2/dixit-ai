@@ -13,66 +13,66 @@ UI: `http://localhost:5173` (proxy `/api` i `/socket.io` → backend na `:3000`)
 npm run build   # weryfikacja TypeScript + Vite
 ```
 
-## Ścieżki testowe (MVP)
+**Backend jest wymagany** do logowania, lobby i gry multiplayer.
 
+## Trasy aplikacji
 
-| Tryb          | Jak wejść                                                           | Backend    |
-| ------------- | ------------------------------------------------------------------- | ---------- |
-| **Produkcja** | `/` → logowanie → menu → host/join → gra po API/socket              | Wymagany   |
-| **Demo**      | Menu → **Gra demonstracyjna** lub host → Start (toast + baner demo) | Nie        |
-| **Preview**   | `/preview/narrator-hand`, `/preview/player-vote`, …                 | Nie        |
-| **Dev**       | Panel w prawym dolnym rogu — `game_id`, fazy                        | Opcjonalny |
+| Ścieżka | Opis |
+|---------|------|
+| `/` | Logowanie / rejestracja (`GuestOnly`) |
+| `/menu` | Menu główne |
+| `/host` | Utworzenie pokoju, boty, start gry |
+| `/join` | Dołączenie kodem 6 znaków |
+| `/game` | Rozgrywka (fazy przez Socket.io) |
+| `/stats` | Ranking i statystyki gracza |
+| `/psycho-profile` | Profil psychologiczny (wykres; API planowane) |
+| `/personalization` | Zestawy kart (API lub podgląd) |
+| `/my-cards` | Własne karty — upload i edytor canvas |
 
+Chronione trasy: `RequireAuth`. **Brak** `/preview/*` i panelu Dev.
 
-### Preview (QA UI)
+## Przepływ gry (multiplayer)
 
-- `/preview/narrator-hand` — narrator, faza `prompting`
-- `/preview/narrator-turn` — oczekiwanie narratora
-- `/preview/player-hand` — gracz, `submitting`
-- `/preview/player-turn` — tura gracza
-- `/preview/player-vote` — głosowanie
-- `/preview/narrator-vote` — podgląd stołu
-- `/preview/round-score` — wynik rundy (`scoring`)
-- `/preview/round-end` — koniec gry (`ended`)
+1. Zaloguj się — `session.ts` wywołuje `socket.connect()`.
+2. Host: `/host` → **Stwórz pokój** → dodaj graczy/boty (min. 3) → **Rozpocznij grę**.
+3. Join: `/join` → kod 6 znaków → poczekalnia (lista z `lobbyUpdate`).
+4. Po starcie: REST zwraca `gameId`; socket emituje `game_started` → `connect_to_game`.
+5. `/game`: widoki faz wysyłają `submit_prompt` / `submit_card` / `submit_vote`.
 
-### Demo vs host (komunikaty)
+Szczegóły eventów: [BACKEND_CHANGES.md](../BACKEND_CHANGES.md).
 
-- **Menu → Gra demonstracyjna** — `gameId: demo-game-id`, pełna pętla faz lokalnie (Dev lub przyciski w widokach).
-- **Host → Stwórz pokój** — 404 na `/api/lobby/create` → kod demo + toast; `**join_room`** emitowany na socket.
-- **Host → Rozpocznij grę** — sukces API → gra serwerowa; w przeciwnym razie toast + tryb demo (nie cicho).
-- **Join** — lista z API/`lobbyUpdate`; bez API: skeleton + komunikat.
-- **Start gry** wymaga **min. 3 graczy** (zasady Dixit).
+## Kontrakt store ↔ API
 
-## Kontrakt store ↔ API (docelowy)
+| Pole store | Źródło |
+|------------|--------|
+| `roomCode` | create / join / `lobbyUpdate` |
+| `gameId` | start / `game_started` / `lobbyUpdate` |
+| `players[]` | create / join / `lobbyUpdate` |
+| `myId` | `connected_to_game` |
+| `narratorId` | `connected_to_game` / `round_state` |
+| `currentPhase` | eventy gry / `mapRoundStatus()` |
+| `myHand[]` | `connected_to_game` (`mapServerCard`) |
+| `tableCards[]` | `start_voting` |
+| `lastRoundScores` | `round_ended` |
+| `socketError` | socket `error` + toast (`socketNotify.ts`) |
 
-Pola, które `useGameStore` powinien dostać po REST / socket (mapowanie w `lobbyApi.ts`, `gameSocket.ts`):
-
-
-| Pole store       | Źródło                                                | Uwagi                                                      |
-| ---------------- | ----------------------------------------------------- | ---------------------------------------------------------- |
-| `roomCode`       | `create` / `join` / `lobbyUpdate`                     | 6 znaków                                                   |
-| `gameId`         | `create` / `start` / `lobbyUpdate`                    | UUID; demo: `demo-game-id`                                 |
-| `players[]`      | `create` / `join` / `lobbyUpdate` / `gameStateUpdate` | `id`, `username`, `score`, `is_narrator` → `isNarrator`, … |
-| `myId`           | `connected_to_game` / `gameStateUpdate`               | ID gracza w grze                                           |
-| `narratorId`     | `players` lub `round_state`                           |                                                            |
-| `currentPhase`   | `gameStateUpdate` / `round_state.status`              | `mapRoundStatus()`                                         |
-| `myHand[]`       | `connected_to_game` / `gameStateUpdate`               | karty: `mapServerCard({ id, image_url })`                  |
-| `tableCards[]`   | `start_voting` / `gameStateUpdate`                    | `submission_id` + `card`                                   |
-| `narratorPrompt` | `prompt_submitted` / round state                      |                                                            |
-| `timer`          | `timerTick` / `gameStateUpdate`                       | sekundy                                                    |
-| `socketError`    | socket `error`                                        | + toast (`socketNotify.ts`)                                |
-
-
-Typy: `GameStateUpdatePayload` w `gameSocket.ts`, `LobbyPlayerDto` / `CreateLobbyResponse` w `lobbyApi.ts`.
+Typy: `GameStateUpdatePayload` w `gameSocket.ts`, DTO lobby w `lobbyApi.ts`.
 
 ## Auth
 
-- Chronione trasy: `/menu`, `/host`, `/join`, `/game`, `/stats`, `/personalization` (`RequireAuth`).
+- Chronione: `/menu`, `/host`, `/join`, `/game`, `/stats`, `/psycho-profile`, `/personalization`, `/my-cards`.
 - **Wyloguj się** → `resetGame()` + `socket.disconnect()`.
 
-## Gra
+## Karty
 
-- Fazy: `waiting` → `prompting` → `submitting` → `voting` → `scoring` → `ended`.
-- Demo: `advanceDemoAfter`* w `demoLobby.ts` — przejścia bez serwera.
-- **Kontynuuj** na scoring — tylko `gameId === 'demo-game-id'`.
+- W grze: `GET /api/cards/:id/image` (z `image_url` lub `mapServerCard`).
+- Własne: `/my-cards` → `api.ts` (`fetchMyCards`, upload, canvas).
+- Rewers: `/Karty/KartaRewers.svg` w `public/`.
 
+## Znane luki integracji
+
+- Po `new_round` frontend nie pobiera ponownie ręki z serwera.
+- Po `game_over` nie mapuje pełnego payloadu wyników.
+- Brak reconnectu przez `GET /api/game/:id` po odświeżeniu strony.
+
+Stan projektu: [docs/STAN_PROJEKTU.md](../docs/STAN_PROJEKTU.md).

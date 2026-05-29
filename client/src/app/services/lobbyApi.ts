@@ -1,8 +1,6 @@
-import { fetchOptional } from './api';
+import { DEFAULT_LOBBY_SETTINGS, fetchApi, fetchOptional } from './api';
 import { useGameStore, Player } from '../store/useGameStore';
-import { setupDemoLobby } from './demoLobby';
 import { emitJoinRoom } from './lobbySocket';
-import { notifyInfo } from './socketNotify';
 
 export interface LobbySettings {
   maxPlayers: number;
@@ -36,7 +34,7 @@ export interface LobbyPlayerDto {
   is_bot?: boolean;
 }
 
-export type LobbySource = 'api' | 'demo';
+export type LobbySource = 'api';
 
 export interface LobbyActionResult {
   roomCode: string;
@@ -45,7 +43,7 @@ export interface LobbyActionResult {
   source: LobbySource;
 }
 
-function mapLobbyPlayer(dto: LobbyPlayerDto): Player {
+export function mapLobbyPlayer(dto: LobbyPlayerDto): Player {
   return {
     id: String(dto.id),
     username: dto.username,
@@ -67,53 +65,68 @@ function applyLobbyResponse(data: CreateLobbyResponse | JoinLobbyResponse) {
   emitJoinRoom(data.roomCode);
 }
 
+type DefaultSettingsDto = {
+  max_players?: number;
+  maxPlayers?: number;
+  end_condition?: 'points' | 'rounds';
+  endCondition?: 'points' | 'rounds';
+  point_limit?: number;
+  round_limit?: number | null;
+  end_limit?: number;
+  endLimit?: number;
+};
+
+/** Mapuje odpowiedź BE (snake_case) na pola używane w UI. */
+export function mapLobbySettings(raw: DefaultSettingsDto): LobbySettings {
+  const endCondition =
+    raw.end_condition ?? raw.endCondition ?? DEFAULT_LOBBY_SETTINGS.endCondition;
+  const maxPlayersRaw = raw.max_players ?? raw.maxPlayers ?? DEFAULT_LOBBY_SETTINGS.maxPlayers;
+  const maxPlayers = Math.min(
+    8,
+    Math.max(3, Number(maxPlayersRaw) || DEFAULT_LOBBY_SETTINGS.maxPlayers)
+  );
+
+  let endLimit: number;
+  if (endCondition === 'rounds') {
+    const rounds = raw.round_limit ?? raw.end_limit ?? raw.endLimit;
+    endLimit = Number(rounds) || 10;
+  } else {
+    const points = raw.point_limit ?? raw.end_limit ?? raw.endLimit;
+    endLimit = Number(points) || DEFAULT_LOBBY_SETTINGS.endLimit;
+  }
+
+  return { maxPlayers, endCondition, endLimit };
+}
+
 export async function fetchLobbyDefaultSettings(): Promise<LobbySettings | null> {
-  return fetchOptional<LobbySettings>('/api/lobby/default-settings');
+  const data = await fetchOptional<DefaultSettingsDto>('/api/lobby/default-settings');
+  if (!data) return null;
+  return mapLobbySettings(data);
 }
 
 export async function createLobby(settings: LobbySettings): Promise<LobbyActionResult> {
-  const data = await fetchOptional<CreateLobbyResponse>('/api/lobby/create', {
+  const data = await fetchApi<CreateLobbyResponse>('/api/lobby/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings),
+    body: JSON.stringify({
+      max_players: settings.maxPlayers,
+      end_condition: settings.endCondition,
+      end_limit: settings.endLimit,
+    }),
   });
-  if (data) {
-    applyLobbyResponse(data);
-    return { ...data, players: data.players?.map(mapLobbyPlayer), source: 'api' };
-  }
-
-  const code = setupDemoLobby(true);
-  const { players, gameId, roomCode } = useGameStore.getState();
-  emitJoinRoom(code);
-  notifyInfo('Utworzono pokój demonstracyjny — bez synchronizacji między przeglądarkami.');
-  return {
-    roomCode: roomCode ?? code,
-    gameId: gameId ?? undefined,
-    players,
-    source: 'demo',
-  };
+  applyLobbyResponse(data);
+  return { ...data, players: data.players?.map(mapLobbyPlayer), source: 'api' };
 }
 
 export async function joinLobby(code: string): Promise<LobbyActionResult> {
   const normalized = code.toUpperCase();
-  const data = await fetchOptional<JoinLobbyResponse>('/api/lobby/join', {
+  const data = await fetchApi<JoinLobbyResponse>('/api/lobby/join', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: normalized }),
+    body: JSON.stringify({ roomCode: normalized }),
   });
-  if (data) {
-    applyLobbyResponse(data);
-    return { ...data, players: data.players?.map(mapLobbyPlayer), source: 'api' };
-  }
-
-  useGameStore.getState().setGameState({
-    roomCode: normalized,
-    players: [],
-    socketError: null,
-  });
-  emitJoinRoom(normalized);
-  notifyInfo('Dołączono do kodu pokoju — lista graczy pojawi się po API lub lobbyUpdate.');
-  return { roomCode: normalized, players: [], source: 'demo' };
+  applyLobbyResponse(data);
+  return { ...data, players: data.players?.map(mapLobbyPlayer), source: 'api' };
 }
 
 export async function startLobbyGame(
@@ -148,6 +161,3 @@ export async function addLobbyBot(roomCode: string): Promise<boolean> {
   return res.ok;
 }
 
-export function isDemoLobbySession(): boolean {
-  return useGameStore.getState().gameId === 'demo-game-id';
-}

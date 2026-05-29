@@ -10,9 +10,9 @@ model cards {
   id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   set_id              String                @db.Uuid
   image_url           String?
-  image_data          Bytes?
-  created_by_user_id  String?               @db.Uuid
   tags                Json?
+  created_by_user_id  String?               @db.Uuid
+  image_data          Bytes?
   card_sets           card_sets             @relation(fields: [set_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   player_card_history player_card_history[]
   player_hands        player_hands[]
@@ -21,14 +21,14 @@ model cards {
 }
 
 model card_sets {
-  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name               String           @db.VarChar(100)
-  is_user_generated  Boolean?         @default(false)
-  owner_user_id      String?          @db.Uuid
-  unlockable_set_id  String?          @db.Uuid
-  cards              cards[]
-  rooms              rooms[]
-  unlockable_sets    unlockable_sets? @relation(fields: [unlockable_set_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String           @db.VarChar(100)
+  unlockable_set_id String?          @db.Uuid
+  is_user_generated Boolean?         @default(false)
+  owner_user_id     String?          @db.Uuid
+  unlockable_sets   unlockable_sets? @relation(fields: [unlockable_set_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cards             cards[]
+  rooms             rooms[]
 }
 
 model game_scores {
@@ -102,13 +102,13 @@ model rooms {
   id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   host_user_id  String         @db.Uuid
   active_set_id String?        @db.Uuid
-  code          String         @unique @db.VarChar(6)
   max_players   Int?           @default(6)
   end_condition String?        @default("points") @db.VarChar(20)
   point_limit   Int?           @default(30)
   round_limit   Int?
   status        String?        @default("waiting") @db.VarChar(20)
   created_at    DateTime?      @default(now()) @db.Timestamp(6)
+  code          String         @unique @db.VarChar(6)
   games         games[]
   room_players  room_players[]
   card_sets     card_sets?     @relation(fields: [active_set_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

@@ -3,7 +3,6 @@ import { GameplayHeader, CardGrid, AssociationBox } from '../../components/Gamep
 import { useGameStore } from '../../store/useGameStore';
 import { Button } from '../../components/Button';
 import { emitSubmitVote } from '../../services/gameSocket';
-import { isDemoGame, advanceDemoAfterVote } from '../../services/demoLobby';
 
 export function PlayerVoteView() {
   const { tableCards, narratorPrompt, timer, socketError } = useGameStore();
@@ -12,11 +11,6 @@ export function PlayerVoteView() {
 
   const handleVote = () => {
     if (!selectedSubmissionId || hasVoted) return;
-    if (isDemoGame()) {
-      setHasVoted(true);
-      advanceDemoAfterVote();
-      return;
-    }
     emitSubmitVote(selectedSubmissionId);
     setHasVoted(true);
   };
@@ -29,7 +23,7 @@ export function PlayerVoteView() {
       <GameplayHeader
         seconds={timer ?? 20}
         roleText="Głosowanie"
-        instruction="Wskaż kartę Narratora. Po głosie wybór zostaje zablokowany."
+        instruction="Odgadnij kartę narratora — po oddaniu głosu nie możesz go zmienić."
       />
 
       <AssociationBox text={narratorPrompt || 'Brak skojarzenia'} />

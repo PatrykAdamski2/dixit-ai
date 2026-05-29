@@ -3,7 +3,6 @@ import { GameplayHeader, CardGrid, AssociationBox } from '../../components/Gamep
 import { useGameStore } from '../../store/useGameStore';
 import { Button } from '../../components/Button';
 import { emitSubmitCard } from '../../services/gameSocket';
-import { isDemoGame, advanceDemoAfterCardSubmit } from '../../services/demoLobby';
 
 export function PlayerHandView() {
   const { myHand, narratorPrompt, timer, socketError } = useGameStore();
@@ -12,11 +11,6 @@ export function PlayerHandView() {
 
   const handleConfirm = () => {
     if (!selectedCardId || submitted) return;
-    if (isDemoGame()) {
-      setSubmitted(true);
-      advanceDemoAfterCardSubmit(selectedCardId);
-      return;
-    }
     emitSubmitCard(selectedCardId);
     setSubmitted(true);
   };
@@ -29,7 +23,7 @@ export function PlayerHandView() {
       <GameplayHeader
         seconds={timer ?? 30}
         roleText="Twój Ruch"
-        instruction="Wybierz kartę pasującą do skojarzenia Narratora."
+        instruction="Wybierz jedną kartę, która najlepiej pasuje do hasła narratora."
       />
 
       <AssociationBox text={narratorPrompt || 'Brak skojarzenia'} />

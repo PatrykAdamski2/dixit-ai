@@ -3,23 +3,24 @@ import { DoorOpen, Loader2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { useGameStore } from '../store/useGameStore';
-import { ApiPendingBanner } from '../components/ApiPendingBanner';
-import { DemoModeBanner } from '../components/DemoModeBanner';
 import { LobbyPlayerList } from '../components/LobbyPlayerList';
 import { joinLobby } from '../services/lobbyApi';
+import { notifyError } from '../services/socketNotify';
 
 export function JoinLobbyView() {
   const { players: storePlayers, roomCode: storeRoomCode, myId } = useGameStore();
   const [code, setCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
-  const [joinedAsDemo, setJoinedAsDemo] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.length !== 6) return;
     setIsJoining(true);
-    const result = await joinLobby(code);
-    setJoinedAsDemo(result.source === 'demo');
+    try {
+      await joinLobby(code);
+    } catch {
+      notifyError('Nie udało się dołączyć do lobby.');
+    }
     setIsJoining(false);
   };
 
@@ -29,8 +30,6 @@ export function JoinLobbyView() {
     return (
       <div className="w-full max-w-md mx-auto px-4 py-8 relative">
         <div className="bg-white/95 backdrop-blur-xl border border-gray-100 rounded-[2.5rem] shadow-2xl p-8 md:p-12 space-y-8">
-          <ApiPendingBanner feature="Synchronizacja listy graczy w lobby" />
-          {joinedAsDemo && <DemoModeBanner context="lobby" />}
           <div className="text-center space-y-4">
             <div className="mx-auto w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center text-orange-500 mb-6">
               <Loader2 size={32} className="animate-spin" />
@@ -42,8 +41,7 @@ export function JoinLobbyView() {
               Oczekiwanie na rozpoczęcie gry przez Hosta…
             </p>
             <p className="text-xs text-gray-400 font-medium">
-              Socket: <code className="bg-gray-100 px-1 rounded">join_room</code> wysłany — lista z{' '}
-              <code className="bg-gray-100 px-1 rounded">lobbyUpdate</code> po stronie serwera.
+              Lista graczy aktualizuje się przez socket po stronie serwera.
             </p>
           </div>
 
@@ -58,7 +56,7 @@ export function JoinLobbyView() {
             )}
             {storePlayers.length === 0 && (
               <p className="text-center text-sm text-gray-500 font-medium">
-                Brak danych o graczach — pojawią się po API lub evencie lobbyUpdate.
+                Brak danych o graczach — pojawią się po evencie lobby.
               </p>
             )}
           </div>
@@ -70,8 +68,6 @@ export function JoinLobbyView() {
   return (
     <div className="w-full max-w-md mx-auto px-4 py-8 relative">
       <div className="bg-white/95 backdrop-blur-xl border border-gray-100 rounded-[2.5rem] shadow-2xl p-8 md:p-12 text-center space-y-10">
-        <ApiPendingBanner feature="Dołączanie do pokoju (POST /api/lobby/join)" />
-
         <div className="mx-auto w-24 h-24 bg-gray-900 rounded-[2rem] flex items-center justify-center text-orange-400 mb-6 rotate-[12deg] shadow-2xl shadow-gray-900/30">
           <DoorOpen size={48} className="-ml-1" />
         </div>

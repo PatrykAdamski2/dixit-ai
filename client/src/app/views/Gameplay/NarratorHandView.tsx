@@ -4,7 +4,6 @@ import { useGameStore } from '../../store/useGameStore';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { emitSubmitPrompt } from '../../services/gameSocket';
-import { isDemoGame, advanceDemoAfterPrompt } from '../../services/demoLobby';
 
 export function NarratorHandView() {
   const { myHand, timer, socketError } = useGameStore();
@@ -17,10 +16,6 @@ export function NarratorHandView() {
   const handleConfirm = () => {
     if (!selectedCard || !association || isTooLong) return;
     const prompt = association.trim();
-    if (isDemoGame()) {
-      advanceDemoAfterPrompt(selectedCard, prompt);
-      return;
-    }
     emitSubmitPrompt(selectedCard, prompt);
   };
 
@@ -32,7 +27,7 @@ export function NarratorHandView() {
       <GameplayHeader
         seconds={timer ?? 40}
         roleText="Jesteś Narratorem"
-        instruction="Wybierz 1 kartę i wpisz skojarzenie (maks. 8 słów). W demo przejdziesz do fazy graczy."
+        instruction="Wybierz 1 kartę i wpisz skojarzenie — nie może być zbyt oczywiste (maks. 8 słów)."
       />
 
       <div className="w-full max-w-xl mx-auto my-6 md:my-8 px-2 space-y-4">

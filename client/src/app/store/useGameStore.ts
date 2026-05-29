@@ -49,6 +49,7 @@ interface GameState {
   tableCards: TableCard[];
   narratorPrompt: string | null; // Hasło wymyślone przez narratora
   timer: number | null; // Czas pozostały do końca fazy (w sekundach)
+  lastRoundScores: Record<string, number>;
 
   // Funkcje do aktualizacji stanu
   setUser: (user: UserProfile | null) => void;
@@ -83,6 +84,7 @@ const initialState = {
   tableCards: [],
   narratorPrompt: null,
   timer: null,
+  lastRoundScores: {},
 };
 
 export const useGameStore = create<GameState>((set) => ({
