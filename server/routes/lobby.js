@@ -4,6 +4,7 @@ const prisma = require('../config/db');
 const auth = require('../middleware/auth');
 const { getIo } = require('../lib/socketBus');
 const { startPhaseTimer } = require('../lib/gameTimer');
+const botOrchestrator = require('../lib/botOrchestrator');
 
 const HAND_SIZE = 6; // karty na rękę na początku gry
 
@@ -126,14 +127,16 @@ router.post('/create', auth, async (req, res) => {
 
 // POST /api/lobby/join
 router.post('/join', auth, async (req, res) => {
-    const { roomCode } = req.body;
+    // FE wysyła { code } (lobbyApi.ts), backend histocyznie oczekiwał { roomCode }
+    const { roomCode, code } = req.body;
+    const roomCodeValue = (roomCode || code)?.toUpperCase();
     const userId = req.user.id;
 
-    if (!roomCode) return res.status(400).json({ error: 'Brak kodu pokoju' });
+    if (!roomCodeValue) return res.status(400).json({ error: 'Brak kodu pokoju' });
 
     try {
         const room = await prisma.rooms.findUnique({
-            where: { code: roomCode.toUpperCase() },
+            where: { code: roomCodeValue },
             include: { room_players: { include: { users: true } } }
         });
 
@@ -239,9 +242,10 @@ router.post('/start', auth, async (req, res) => {
                 }
             }
 
-            // Wybierz pierwszego narratora (losowo)
-            const narratorIndex = Math.floor(Math.random() * players.length);
-            const firstNarrator = players[narratorIndex];
+            // Hotfix: pierwszy narrator zawsze człowiek (boty nie mogą zacząć)
+            const humanPlayers = players.filter(p => !p.is_bot);
+            const narratorPool = humanPlayers.length > 0 ? humanPlayers : players;
+            const firstNarrator = narratorPool[Math.floor(Math.random() * narratorPool.length)];
 
             // Utwórz pierwszą rundę
             await tx.rounds.create({
@@ -267,6 +271,14 @@ router.post('/start', auth, async (req, res) => {
         if (io) {
             io.to(`lobby:${room.code}`).emit('game_started', { gameId });
             startPhaseTimer(io, gameId, 'prompting');
+
+            // Jeśli narrator rundy 1 to bot — zadziała dopiero po hotfixie (narrator = człowiek),
+            // ale zostawiamy trigger na wypadek gdyby wszyscy gracze byli botami
+            const firstRound = await prisma.rounds.findFirst({ where: { game_id: gameId } });
+            if (firstRound) {
+                botOrchestrator.handleNarratorIfBot(io, gameId, firstRound)
+                    .catch(err => console.error('[Bot] round 1 narrator error:', err));
+            }
         }
 
         return res.status(200).json({ gameId });
@@ -324,13 +336,12 @@ router.post('/add-bot', auth, async (req, res) => {
     }
 });
 
-// GET /api/lobby/default-settings
+// GET /api/lobby/default-settings — camelCase dla FE (LobbySettings interface)
 router.get('/default-settings', auth, (req, res) => {
     return res.json({
-        max_players: 6,
-        end_condition: 'points',
-        point_limit: 30,
-        round_limit: null
+        maxPlayers: 6,
+        endCondition: 'points',
+        endLimit: 30
     });
 });
 

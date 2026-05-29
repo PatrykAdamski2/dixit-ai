@@ -1,6 +1,7 @@
 const prisma = require('../config/db');
 const { calculateScores } = require('../lib/scoring');
 const { startPhaseTimer, clearPhaseTimer } = require('../lib/gameTimer');
+const botOrchestrator = require('../lib/botOrchestrator');
 
 const HAND_SIZE = 6; // docelowa liczba kart w ręce
 
@@ -154,6 +155,10 @@ module.exports = (io, socket) => {
                 narrator_player_id: socket.player_id
             });
             startPhaseTimer(io, socket.game_id, 'submitting');
+
+            // Boty-gracze przesyłają karty asynchronicznie
+            botOrchestrator.handleBotSubmissions(io, socket.game_id, round.id, prompt)
+                .catch(err => console.error('[Bot] handleBotSubmissions error:', err));
         } catch (err) {
             console.error(err);
             socket.emit('error', { message: 'Błąd podczas przesyłania hasła' });
@@ -225,6 +230,11 @@ module.exports = (io, socket) => {
 
                 io.to(socket.game_id).emit('start_voting', { cards: shuffledCards });
                 startPhaseTimer(io, socket.game_id, 'voting');
+
+                // Boty głosują asynchronicznie
+                botOrchestrator.handleBotVotes(
+                    io, socket.game_id, round, allSubmissions, round.games.rooms.room_players
+                ).catch(err => console.error('[Bot] handleBotVotes error:', err));
             }
         } catch (err) {
             console.error(err);
@@ -492,4 +502,16 @@ async function _endRound(io, gameId, round, allPlayers) {
         status: 'prompting'
     });
     startPhaseTimer(io, gameId, 'prompting');
+
+    // Jeśli nowy narrator to bot, od razu generuje hasło
+    const newRound = await prisma.rounds.findFirst({
+        where: { game_id: gameId, round_number: newRoundNumber }
+    });
+    if (newRound) {
+        botOrchestrator.handleNarratorIfBot(io, gameId, newRound)
+            .catch(err => console.error('[Bot] handleNarratorIfBot error:', err));
+    }
 }
+
+// Eksportujemy _endRound dla botOrchestrator (lazy require, brak circular dep)
+module.exports._endRound = _endRound;

@@ -2,6 +2,55 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../config/db');
 const auth = require('../middleware/auth');
+const jwt = require('jsonwebtoken');
+
+// GET /api/stats/global — leaderboard w formacie oczekiwanym przez FE
+// Zwraca: { topPlayers: [{rank, name, wins, avatar}], currentUserRank: {...} | null }
+router.get('/global', async (req, res) => {
+    try {
+        const stats = await prisma.user_stats.findMany({
+            orderBy: { total_points: 'desc' },
+            take: 10,
+            include: { users: { select: { username: true } } }
+        });
+
+        const topPlayers = stats.map((s, i) => ({
+            rank: i + 1,
+            name: s.users.username,
+            wins: s.games_won ?? 0,
+            avatar: s.users.username.slice(0, 2).toUpperCase()
+        }));
+
+        // Opcjonalny auth — currentUserRank gdy zalogowany
+        let currentUserRank = null;
+        try {
+            const token = req.cookies?.token;
+            if (token) {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                const userStat = await prisma.user_stats.findFirst({
+                    where: { user_id: decoded.id },
+                    include: { users: { select: { username: true } } }
+                });
+                if (userStat) {
+                    const rank = await prisma.user_stats.count({
+                        where: { total_points: { gt: userStat.total_points } }
+                    }) + 1;
+                    currentUserRank = {
+                        rank,
+                        name: userStat.users.username,
+                        wins: userStat.games_won ?? 0,
+                        avatar: userStat.users.username.slice(0, 2).toUpperCase()
+                    };
+                }
+            }
+        } catch { /* brak sesji — pomijamy */ }
+
+        return res.json({ topPlayers, currentUserRank });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Błąd pobierania rankingu' });
+    }
+});
 
 // GET /api/stats/leaderboard — top 10 graczy wg total_points
 router.get('/leaderboard', async (req, res) => {
