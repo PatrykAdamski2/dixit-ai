@@ -1,5 +1,38 @@
+# Kontekst buildu Dockera — mniejszy obraz, bez sekretów i śmieci
+
+# Git i dokumentacja (niepotrzebna w obrazie aplikacji)
+.git
+.github
+**/.git
+docs/
+*.md
+!bot/README.md
+
+# Zależności (instalacja w kontenerze)
 **/node_modules
+**/.venv
+venv/
+
+# Sekrety
+.env
+.env.*
+!.env.example
+
+# Buildy i cache
 **/dist
-**/.env
-**/.DS_Store
-**/*.log
+**/.vite
+**/.cache
+**/__pycache__
+*.log
+coverage/
+.nyc_output
+
+# Modele ML (osobny wolumen w compose)
+bot/model/
+
+# IDE / OS
+.idea
+.vscode
+.cursor
+.DS_Store
+Thumbs.db
