@@ -27,10 +27,10 @@ export const GameCard: React.FC<GameCardProps> = ({
   className,
   size = 'md',
 }) => {
-  // Ustalamy skąd wziąć obrazek (rewers lub konkretny numer)
-  const finalSrc = isBack 
-    ? '/Karty/KartaRewers.png' 
-    : (imageUrl || (cardId ? `/Karty/KartaNr${cardId}.png` : ''));
+  const normalizedImageUrl = imageUrl?.startsWith('/Karty/') ? undefined : imageUrl;
+  const finalSrc = isBack
+    ? '/Karty/KartaRewers.png'
+    : (normalizedImageUrl || (cardId ? `/api/cards/${cardId}/image` : ''));
 
   // Klasy wielkości - zachowujemy proporcje 2:3
   const sizeClasses = {

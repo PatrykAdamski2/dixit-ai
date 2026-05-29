@@ -37,12 +37,13 @@ export function mapRoundStatus(status?: string | null): GamePhase {
   }
 }
 
-/** Jedna funkcja mapowania kart — używana też w mockach i seedzie preview. */
+/** Jedna funkcja mapowania kart z eventów serwera. */
 export function mapServerCard(raw: { id?: string | number; image_url?: string }): Card {
   const id = String(raw.id ?? '');
-  const imageUrl =
-    raw.image_url ||
-    (id ? `/Karty/KartaNr${id}.png` : '/Karty/KartaNr1.png');
+  const normalized = raw.image_url?.startsWith('/Karty/')
+    ? undefined
+    : raw.image_url;
+  const imageUrl = normalized || (id ? `/api/cards/${id}/image` : '/api/cards/1/image');
   return { id, imageUrl };
 }
 
@@ -105,9 +106,32 @@ export function registerGameSocketHandlers(sock: Socket) {
     });
   });
 
-  sock.on('round_ended', () => {
+  sock.on('round_ended', (payload: { scores?: Array<{ player_id: string; round_points: number }> }) => {
+    const mapped =
+      payload?.scores?.reduce<Record<string, number>>((acc, item) => {
+        acc[String(item.player_id)] = item.round_points;
+        return acc;
+      }, {}) ?? {};
     get().setGameState({
       currentPhase: 'scoring',
+      lastRoundScores: mapped,
+      socketError: null,
+    });
+  });
+
+  sock.on('new_round', () => {
+    get().setGameState({
+      currentPhase: 'prompting',
+      tableCards: [],
+      narratorPrompt: null,
+      lastRoundScores: {},
+      socketError: null,
+    });
+  });
+
+  sock.on('game_over', () => {
+    get().setGameState({
+      currentPhase: 'ended',
       socketError: null,
     });
   });

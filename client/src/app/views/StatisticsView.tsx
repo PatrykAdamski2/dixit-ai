@@ -3,62 +3,62 @@ import { Trophy, Medal, Star } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { ViewPageShell } from '../components/ViewPageShell';
 import { Skeleton } from '../components/ui/skeleton';
-import { fetchOptional } from '../services/api';
-import { MOCK_GLOBAL_STATS } from '../data/mockStats';
+import { fetchApi } from '../services/api';
 
 interface PlayerRanking {
   rank: number;
-  name: string;
-  wins: number;
-  avatar: string;
+  username: string;
+  total_points: number;
+  games_played: number;
+  games_won: number;
+}
+
+interface MyStats {
+  games_played: number;
+  games_won: number;
+  total_points: number;
 }
 
 export function StatisticsView() {
   const [topPlayers, setTopPlayers] = useState<PlayerRanking[]>([]);
-  const [currentUserRank, setCurrentUserRank] = useState<PlayerRanking | null>(null);
+  const [myStats, setMyStats] = useState<MyStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [usingMock, setUsingMock] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const user = useGameStore((state) => state.user);
 
   useEffect(() => {
     const fetchRankings = async () => {
-      const data = await fetchOptional<{
-        topPlayers: PlayerRanking[];
-        currentUserRank: PlayerRanking | null;
-      }>('/api/stats/global');
-      if (data?.topPlayers?.length) {
-        setTopPlayers(data.topPlayers);
-        setCurrentUserRank(data.currentUserRank ?? null);
-      } else {
-        const mock = MOCK_GLOBAL_STATS;
-        setTopPlayers(mock.topPlayers);
-        setCurrentUserRank({
-          ...mock.currentUserRank,
-          name: user?.username ?? mock.currentUserRank.name,
-          avatar: user?.avatar?.slice(0, 2) ?? mock.currentUserRank.avatar,
-        });
-        setUsingMock(true);
+      try {
+        const [leaderboard, mine] = await Promise.all([
+          fetchApi<PlayerRanking[]>('/api/stats/leaderboard'),
+          fetchApi<MyStats>('/api/stats/me'),
+        ]);
+        setTopPlayers(leaderboard);
+        setMyStats(mine);
+      } catch {
+        setError('Nie udało się pobrać rankingu.');
       }
       setLoading(false);
     };
 
     fetchRankings();
-  }, [user?.username, user?.avatar]);
+  }, []);
+
+  const me = topPlayers.find((player) => player.username === user?.username);
 
   return (
     <ViewPageShell
-      apiFeature="Ranking globalny (GET /api/stats/global)"
       icon={
         <div className="w-20 h-20 bg-orange-100 rounded-[2rem] flex items-center justify-center text-orange-500 rotate-3 shadow-xl">
           <Trophy size={40} />
         </div>
       }
       title="Globalny Ranking"
-      subtitle="Top graczy — po podłączeniu API wystarczy podmienić fetch w tym widoku."
+      subtitle="Top graczy na podstawie statystyk z backendu."
     >
-      {usingMock && (
-        <p className="text-center text-sm font-medium text-orange-700 bg-orange-50 rounded-xl py-2 px-4 border border-orange-100">
-          Dane podglądowe — endpoint zwrócił 404 lub pustą odpowiedź.
+      {error && (
+        <p className="text-center text-sm font-medium text-red-700 bg-red-50 rounded-xl py-2 px-4 border border-red-100">
+          {error}
         </p>
       )}
 
@@ -97,11 +97,11 @@ export function StatisticsView() {
                   )}
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-white shadow-sm border flex items-center justify-center font-bold text-gray-600">
-                  {player.avatar}
+                  {(player.username || '?').slice(0, 2).toUpperCase()}
                 </div>
-                <div className="flex-1 font-bold text-gray-900">{player.name}</div>
+                <div className="flex-1 font-bold text-gray-900">{player.username}</div>
                 <div className="text-right">
-                  <span className="text-2xl font-black">{player.wins}</span>
+                  <span className="text-2xl font-black">{player.total_points}</span>
                   <Star size={16} className="inline text-orange-400 fill-orange-400 ml-1" />
                 </div>
               </div>
@@ -110,17 +110,17 @@ export function StatisticsView() {
             <p className="text-center py-12 text-gray-400 font-bold">Brak danych rankingu.</p>
           )}
 
-          {currentUserRank && (
+          {(myStats || me) && (
             <div className="flex items-center gap-6 p-4 rounded-2xl bg-gray-900 text-white mt-4">
-              <span className="w-12 text-center font-black text-gray-400">#{currentUserRank.rank}</span>
+              <span className="w-12 text-center font-black text-gray-400">{me ? `#${me.rank}` : '—'}</span>
               <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center font-bold">
-                {currentUserRank.avatar}
+                {(user?.avatar || user?.username || 'TY').slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 font-bold">
-                {currentUserRank.name}{' '}
+                {user?.username ?? 'Ty'}{' '}
                 <span className="text-xs bg-orange-500 px-2 py-0.5 rounded-md uppercase">Ty</span>
               </div>
-              <span className="text-2xl font-black">{currentUserRank.wins}</span>
+              <span className="text-2xl font-black">{myStats?.total_points ?? me?.total_points ?? 0}</span>
             </div>
           )}
         </div>

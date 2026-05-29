@@ -4,8 +4,9 @@ import { GameCard } from '../../components/GameCard';
 import { useGameStore } from '../../store/useGameStore';
 
 export function NarratorTurnView() {
-  const { timer, players, narratorId, narratorPrompt, currentPhase } = useGameStore();
+  const { timer, players, narratorId, narratorPrompt, currentPhase, myId } = useGameStore();
   const narrator = players.find((p) => p.id === narratorId);
+  const isMeNarrator = myId === narratorId;
 
   const phaseHint =
     currentPhase === 'prompting'
@@ -19,13 +20,19 @@ export function NarratorTurnView() {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center max-w-3xl mx-auto min-h-[55vh] px-4">
       <GameplayHeader
-        seconds={timer ?? 40}
-        roleText="Oczekiwanie"
+        seconds={timer ?? undefined}
+        roleText={isMeNarrator ? 'Jesteś narratorem' : 'Oczekiwanie'}
         instruction={
-          <>
-            Narrator <strong className="text-gray-800">{narrator?.username || 'Gracz'}</strong>{' '}
-            {phaseHint}.
-          </>
+          isMeNarrator ? (
+            <>
+              Twoja karta i skojarzenie trafiły na stół. Pozostali gracze wybierają karty pasujące do hasła.
+            </>
+          ) : (
+            <>
+              Narrator <strong className="text-gray-800">{narrator?.username || 'Gracz'}</strong>{' '}
+              {phaseHint}.
+            </>
+          )
         }
       />
 

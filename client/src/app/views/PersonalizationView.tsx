@@ -4,48 +4,23 @@ import { Button } from '../components/Button';
 import { useGameStore } from '../store/useGameStore';
 import { ViewPageShell } from '../components/ViewPageShell';
 import { Skeleton } from '../components/ui/skeleton';
-import { fetchOptional } from '../services/api';
-import { MOCK_THEMES } from '../data/mockPersonalization';
-
-interface Theme {
-  id: string;
-  name: string;
-  price: number;
-  preview: string;
-  accent: string;
-}
+import { fetchProfile, fetchThemes, buyTheme, selectTheme, type Theme } from '../services/personalizationApi';
 
 export function PersonalizationView() {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [activeThemeId, setActiveThemeId] = useState('classic');
-  const [ownedThemeIds, setOwnedThemeIds] = useState<string[]>(['classic']);
+  const [ownedThemeIds, setOwnedThemeIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingMock, setUsingMock] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const user = useGameStore((state) => state.user);
   const setUser = useGameStore((state) => state.setUser);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [themesData, profileData] = await Promise.all([
-        fetchOptional<{ themes: Theme[] }>('/api/personalization/themes'),
-        fetchOptional<{
-          username: string;
-          coins: number;
-          avatar?: string;
-          activeThemeId: string;
-          ownedThemeIds: string[];
-        }>('/api/user/profile'),
-      ]);
-
-      if (themesData?.themes?.length) {
-        setThemes(themesData.themes);
-      } else {
-        setThemes(MOCK_THEMES);
-        setUsingMock(true);
-      }
-
-      if (profileData) {
+      try {
+        const [themesData, profileData] = await Promise.all([fetchThemes(), fetchProfile()]);
+        setThemes(themesData);
         setActiveThemeId(profileData.activeThemeId);
         setOwnedThemeIds(profileData.ownedThemeIds ?? []);
         setUser({
@@ -53,70 +28,42 @@ export function PersonalizationView() {
           coins: profileData.coins,
           avatar: profileData.avatar,
         });
-      } else if (user) {
-        setUser({ ...user, coins: user.coins || 250 });
-      } else {
-        setUser({ username: 'Gracz', coins: 250, avatar: 'GR' });
-        setUsingMock(true);
+      } catch {
+        setError('Personalizacja niedostępna. Backend nie udostępnia jeszcze tego API.');
       }
       setLoading(false);
     };
 
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- jednorazowy load + mock
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- jednorazowy load
   }, [setUser]);
 
   const handleBuyTheme = async (themeId: string, price: number) => {
     if (!user || user.coins < price) return;
     try {
-      const response = await fetch('/api/personalization/buy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ themeId }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setOwnedThemeIds([...ownedThemeIds, themeId]);
-        setUser({ ...user, coins: data.newBalance });
-        return;
-      }
-    } catch {
-      /* demo */
-    }
-    if (usingMock && user.coins >= price) {
+      const data = await buyTheme(themeId);
       setOwnedThemeIds([...ownedThemeIds, themeId]);
-      setUser({ ...user, coins: user.coins - price });
+      setUser({ ...user, coins: data.newBalance });
+    } catch {
+      setError('Nie udało się kupić motywu.');
     }
   };
 
   const handleSelectTheme = async (themeId: string) => {
     try {
-      const response = await fetch('/api/personalization/select', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ themeId }),
-      });
-      if (response.ok) {
-        setActiveThemeId(themeId);
-        return;
-      }
-    } catch {
-      /* demo */
-    }
-    if (ownedThemeIds.includes(themeId)) {
+      await selectTheme(themeId);
       setActiveThemeId(themeId);
+    } catch {
+      setError('Nie udało się ustawić motywu.');
     }
   };
 
   return (
     <ViewPageShell
       maxWidth="lg"
-      apiFeature="Personalizacja (motywy kart, sklep)"
       icon={<Sparkles className="text-orange-500" size={48} />}
       title="Personalizacja"
-      subtitle="Motywy kart — mock lokalny do czasu API; po wdrożeniu zostaje ten sam układ."
+      subtitle="Motywy kart i ustawienia profilu."
     >
       <div className="flex justify-center md:justify-end">
         <div className="bg-white border-2 border-orange-200 rounded-2xl px-6 py-4 flex items-center gap-4 shadow-lg">
@@ -128,9 +75,9 @@ export function PersonalizationView() {
         </div>
       </div>
 
-      {usingMock && (
-        <p className="text-sm font-medium text-orange-700 bg-orange-50 rounded-xl py-2 px-4 border border-orange-100 text-center">
-          Zakupy i wybór motywu działają lokalnie — podłącz POST buy/select gdy backend będzie gotowy.
+      {error && (
+        <p className="text-sm font-medium text-red-700 bg-red-50 rounded-xl py-2 px-4 border border-red-100 text-center">
+          {error}
         </p>
       )}
 
@@ -167,7 +114,7 @@ export function PersonalizationView() {
                 ) : (
                   <Button
                     className="w-full"
-                    disabled={!canAfford && !usingMock}
+                    disabled={!canAfford}
                     onClick={() => handleBuyTheme(theme.id, theme.price)}
                   >
                     {theme.price === 0 ? 'Darmowy' : canAfford ? `Kup (${theme.price})` : 'Brak monet'}

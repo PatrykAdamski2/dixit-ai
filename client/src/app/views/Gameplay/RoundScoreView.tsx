@@ -1,43 +1,28 @@
 import React from 'react';
 import { TimerBox } from '../../components/GameplayComponents';
 import { Button } from '../../components/Button';
-import { DemoModeBanner } from '../../components/DemoModeBanner';
 import { useGameStore } from '../../store/useGameStore';
-import { isDemoGame, startDemoGame } from '../../services/demoLobby';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export function RoundScoreView() {
-  const { players, timer } = useGameStore();
-  const isDemo = isDemoGame();
+  const { players, timer, lastRoundScores } = useGameStore();
 
   const chartData =
     players.length > 0
       ? players.map((p, index) => ({
           name: p.username,
-          points: p.score,
+          points: lastRoundScores[p.id] ?? p.score,
           fill: p.isBot ? '#6366f1' : ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'][index % 5],
         }))
       : [{ name: 'Brak danych', points: 0, fill: '#d1d5db' }];
 
-  const handleContinue = () => {
-    if (isDemo) {
-      startDemoGame('prompting');
-      return;
-    }
-  };
-
-  const handleEndDemo = () => {
-    useGameStore.getState().setPhase('ended');
-  };
-
   return (
     <div className="w-full h-full flex flex-col items-center max-w-4xl mx-auto py-6 md:py-8 px-4">
-      {isDemo && <DemoModeBanner context="game" />}
       <div className="w-full flex justify-between items-center bg-white/80 backdrop-blur-md p-4 rounded-3xl border border-gray-200 shadow-sm mb-8">
         <TimerBox seconds={timer ?? 5} />
         <div className="text-center">
           <h2 className="text-2xl font-black text-gray-900 tracking-tight">Wynik rundy</h2>
-          <p className="text-sm text-gray-500 font-medium">Punkty w tej rundzie (demo: symulacja)</p>
+          <p className="text-sm text-gray-500 font-medium">Punkty zdobyte w tej rundzie</p>
         </div>
         <div className="w-24" />
       </div>
@@ -73,24 +58,16 @@ export function RoundScoreView() {
       <div className="mt-8 flex flex-col sm:flex-row gap-3 w-full max-w-md">
         <Button
           size="lg"
-          onClick={handleContinue}
-          disabled={!isDemo}
+          disabled
           className="flex-1 h-14 text-lg shadow-lg"
-          title={isDemo ? undefined : 'Kontynuacja wymaga sygnału z serwera'}
+          title="Kontynuacja wymaga sygnału z serwera"
         >
           Kontynuuj (następna runda)
         </Button>
-        {isDemo && (
-          <Button size="lg" variant="outline" onClick={handleEndDemo} className="flex-1 h-14">
-            Zakończ grę
-          </Button>
-        )}
       </div>
-      {!isDemo && (
-        <p className="mt-3 text-sm text-gray-500 font-medium text-center">
-          Następna runda rozpocznie się po evencie z serwera (np. gameStateUpdate).
-        </p>
-      )}
+      <p className="mt-3 text-sm text-gray-500 font-medium text-center">
+        Następna runda rozpocznie się po evencie z serwera.
+      </p>
     </div>
   );
 }

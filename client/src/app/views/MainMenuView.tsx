@@ -1,20 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/Button';
-import { Swords, Users, BarChart3, Palette, LogOut, Sparkles } from 'lucide-react';
+import { Swords, BarChart3, Palette, LogOut, Paintbrush } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
-import { setupDemoLobby, startDemoGame } from '../services/demoLobby';
 import { logoutSession } from '../services/session';
 
 export function MainMenuView() {
   const navigate = useNavigate();
   const user = useGameStore((state) => state.user);
-
-  const handleDemoGame = () => {
-    setupDemoLobby(true);
-    startDemoGame('prompting');
-    navigate('/game');
-  };
 
   const handleLogout = async () => {
     await logoutSession();
@@ -61,17 +54,7 @@ export function MainMenuView() {
             <img src="/Ikony/NextIcon.svg" className="w-8 h-8 group-hover:translate-x-1 transition-transform opacity-50" alt="" />
           </Button>
 
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-full flex items-center justify-center gap-3 py-6 rounded-2xl border-dashed border-orange-300 bg-orange-50/50 hover:bg-orange-50"
-            onClick={handleDemoGame}
-          >
-            <Sparkles size={22} className="text-orange-500" />
-            <span className="font-bold text-orange-700">Gra demonstracyjna (bez API)</span>
-          </Button>
-
-          <div className="grid grid-cols-2 gap-4 mt-2">
+          <div className="grid grid-cols-3 gap-4 mt-2">
             <Button
               size="lg"
               variant="outline"
@@ -80,9 +63,6 @@ export function MainMenuView() {
             >
               <BarChart3 size={24} className="text-gray-700" />
               <span className="text-gray-800">Statystyki</span>
-              <span className="absolute -top-2 -right-2 text-[10px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full uppercase">
-                Podgląd
-              </span>
             </Button>
 
             <Button
@@ -93,9 +73,16 @@ export function MainMenuView() {
             >
               <Palette size={24} className="text-orange-500" />
               <span className="text-gray-800">Personalizacja</span>
-              <span className="absolute -top-2 -right-2 text-[10px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full uppercase">
-                Podgląd
-              </span>
+            </Button>
+
+            <Button
+              size="lg"
+              variant="outline"
+              className="relative flex flex-col items-center gap-2 h-auto py-6 bg-white/80 border-gray-200 hover:border-orange-200"
+              onClick={() => navigate('/my-cards')}
+            >
+              <Paintbrush size={24} className="text-indigo-500" />
+              <span className="text-gray-800">Moje karty</span>
             </Button>
           </div>
         </div>
