@@ -3,8 +3,6 @@
  * Używa trybu image_b64 — czyta image_data bezpośrednio z Prisma,
  * więc działa nawet gdy karta ma null image_url (seeded cards).
  */
-const fs = require('fs');
-const path = require('path');
 const prisma = require('../config/db');
 
 const getBotUrl = () => process.env.BOT_SERVICE_URL || 'http://bot:8000';
@@ -14,7 +12,7 @@ async function getCardImageB64(cardId) {
     if (!card) throw new Error(`Card ${cardId} not found`);
 
     if (card.image_data) {
-        return card.image_data.toString('base64');
+        return Buffer.from(card.image_data).toString('base64');
     }
 
     if (card.image_url?.startsWith('http')) {
@@ -24,14 +22,7 @@ async function getCardImageB64(cardId) {
         return Buffer.from(buf).toString('base64');
     }
 
-    // Ścieżka relatywna — czytaj z dysku (np. /Karty/KartaNr1.png)
-    if (card.image_url) {
-        const filePath = path.join(__dirname, '../public', card.image_url);
-        const data = fs.readFileSync(filePath);
-        return data.toString('base64');
-    }
-
-    throw new Error(`Card ${cardId} has no image_data and no valid image_url`);
+    throw new Error(`Card ${cardId} has no image_data in DB`);
 }
 
 /**
@@ -48,9 +39,11 @@ async function narratorPrompt(cardId) {
     });
     if (!res.ok) {
         const text = await res.text().catch(() => '');
+        console.error(`[BotClient] narratorPrompt FAIL cardId=${cardId} status=${res.status} body=${text}`);
         throw new Error(`Bot /generate-prompt error ${res.status}: ${text}`);
     }
     const data = await res.json();
+    console.log(`[BotClient] narratorPrompt cardId=${cardId} clue="${data.clue}"`);
     return data.clue;
 }
 

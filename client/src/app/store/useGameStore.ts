@@ -21,6 +21,7 @@ export interface TableCard {
   submissionId: string;
   cardId: string;
   imageUrl: string;
+  playerId?: string;
 }
 
 export interface UserProfile {

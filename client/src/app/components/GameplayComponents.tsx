@@ -62,7 +62,7 @@ export function CardGrid({
   disabled = false,
   variant = 'hand',
 }: {
-  cards: { id: string; image?: string }[];
+  cards: { id: string; image?: string; disabled?: boolean }[];
   onSelect?: (id: string) => void;
   selectedId?: string;
   faceDown?: boolean;
@@ -78,10 +78,10 @@ export function CardGrid({
       imageUrl={card.image}
       isBack={faceDown}
       isSelected={selectedId === card.id}
-      isSelectable={selectable}
+      isSelectable={selectable && !card.disabled}
       onClick={() => onSelect?.(card.id)}
       size={variant === 'table' ? 'md' : 'sm'}
-      className="shrink-0 md:shrink"
+      className={`shrink-0 md:shrink${card.disabled ? ' opacity-40 cursor-not-allowed' : ''}`}
     />
   ));
 

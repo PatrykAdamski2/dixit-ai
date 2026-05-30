@@ -22,10 +22,8 @@ router.get('/profile', auth, async (req, res) => {
             id: user.id,
             username: user.username,
             email: user.email,
-            // Monety nieimplementowane w schemacie — domyślnie 0
-            coins: 0,
+            coins: stats?.coins ?? 0,
             avatar: user.username.slice(0, 2).toUpperCase(),
-            // Personalizacja niezaimplementowana w schemacie — domyślne wartości
             activeThemeId: 'classic',
             ownedThemeIds: ['classic'],
             created_at: user.created_at,
