@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const prisma = require('../config/db');
 
 // Statyczna lista motywów (brak tabeli w DB)
 // preview/accent to klasy Tailwind — identyczne z mockPersonalization.ts po stronie FE
@@ -41,10 +42,33 @@ router.get('/themes', auth, (req, res) => {
     return res.json({ themes: THEMES });
 });
 
-// POST /api/personalization/buy — stub (system walut niezaimplementowany)
-// FE sprawdza response.ok — 501 = fallback do mocka
-router.post('/buy', auth, (req, res) => {
-    return res.status(501).json({ error: 'System walut nie jest jeszcze dostępny' });
+// POST /api/personalization/buy — odejmij coiny i zablokuj zakup
+router.post('/buy', auth, async (req, res) => {
+    const themeId = req.body.themeId ?? req.body.theme_id;
+    const theme = THEMES.find(t => t.id === themeId);
+    if (!theme) return res.status(404).json({ error: 'Nie znaleziono motywu' });
+
+    try {
+        const userId = req.user.id;
+        const stats = await prisma.user_stats.findFirst({ where: { user_id: userId } });
+        const currentCoins = stats?.coins ?? 0;
+
+        if (currentCoins < theme.price) {
+            return res.status(400).json({ error: 'Niewystarczające monety' });
+        }
+
+        if (stats) {
+            await prisma.user_stats.update({
+                where: { id: stats.id },
+                data: { coins: { decrement: theme.price } }
+            });
+        }
+
+        return res.json({ themeId, newBalance: currentCoins - theme.price });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Błąd zakupu' });
+    }
 });
 
 // POST /api/personalization/select — przyjmuje { themeId } lub { theme_id }

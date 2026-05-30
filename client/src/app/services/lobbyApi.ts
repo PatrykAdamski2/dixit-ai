@@ -111,7 +111,8 @@ export async function createLobby(settings: LobbySettings): Promise<LobbyActionR
     body: JSON.stringify({
       max_players: settings.maxPlayers,
       end_condition: settings.endCondition,
-      end_limit: settings.endLimit,
+      point_limit: settings.endCondition === 'points' ? settings.endLimit : undefined,
+      round_limit: settings.endCondition === 'rounds' ? settings.endLimit : undefined,
     }),
   });
   applyLobbyResponse(data);

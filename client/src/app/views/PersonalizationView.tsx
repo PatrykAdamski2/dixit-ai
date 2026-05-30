@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Coins, Sparkles, Check } from 'lucide-react';
+
+const THEME_GRADIENTS: Record<string, string> = {
+  classic: 'linear-gradient(135deg, #fef3c7, #fed7aa)',
+  ocean:   'linear-gradient(135deg, #bfdbfe, #67e8f9)',
+  forest:  'linear-gradient(135deg, #bbf7d0, #10b981)',
+  dark:    'linear-gradient(135deg, #374151, #111827)',
+};
 import { Button } from '../components/Button';
 import { useGameStore } from '../store/useGameStore';
 import { ViewPageShell } from '../components/ViewPageShell';
@@ -134,6 +141,7 @@ export function PersonalizationView() {
             const isOwned = ownedThemeIds.includes(theme.id);
             const isActive = activeThemeId === theme.id;
             const canAfford = (user?.coins ?? 0) >= theme.price;
+            const previewStyle = THEME_GRADIENTS[theme.id] ?? THEME_GRADIENTS['classic'];
 
             return (
               <div
@@ -142,7 +150,21 @@ export function PersonalizationView() {
                   isActive ? 'border-orange-500' : 'border-gray-100'
                 }`}
               >
-                <div className={`w-full aspect-video rounded-2xl mb-4 ${theme.preview}`} />
+                <div
+                  className="w-full aspect-video rounded-2xl mb-4 relative"
+                  style={{ background: previewStyle }}
+                >
+                  {theme.price > 0 && !isOwned && (
+                    <span className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 text-white text-xs font-black px-2 py-1 rounded-lg">
+                      <Coins size={12} /> {theme.price}
+                    </span>
+                  )}
+                  {theme.price === 0 && (
+                    <span className="absolute top-2 right-2 bg-green-500 text-white text-xs font-black px-2 py-1 rounded-lg">
+                      Darmowy
+                    </span>
+                  )}
+                </div>
                 <h3 className="font-bold text-lg mb-3">{theme.name}</h3>
                 {isActive ? (
                   <Button className="w-full bg-orange-50 text-orange-600 cursor-default">
@@ -158,7 +180,9 @@ export function PersonalizationView() {
                     disabled={!canAfford}
                     onClick={() => handleBuyTheme(theme.id, theme.price)}
                   >
-                    {theme.price === 0 ? 'Darmowy' : canAfford ? `Kup (${theme.price})` : 'Brak monet'}
+                    {canAfford
+                      ? <><Coins size={15} className="mr-1" /> Kup za {theme.price}</>
+                      : 'Za mało monet'}
                   </Button>
                 )}
               </div>

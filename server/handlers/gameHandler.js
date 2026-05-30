@@ -16,21 +16,33 @@ async function drawCards(tx, gameId, playerId, count) {
 
     const allCards = game.rooms.card_sets?.cards ?? [];
 
-    // Karty już w ręce
+    // Karty już w ręce gracza
     const currentHand = await tx.player_hands.findMany({
         where: { game_id: gameId, player_id: playerId }
     });
     const inHand = new Set(currentHand.map(h => h.card_id));
 
-    // Karty użyte w historii tej gry
+    // Karty użyte w historii tej gry przez tego gracza
     const history = await tx.player_card_history.findMany({
         where: { game_id: gameId, player_id: playerId }
     });
-    history.forEach(h => inHand.add(h.card_id));
+    const inHistory = new Set(history.map(h => h.card_id));
 
-    const available = allCards.filter(c => !inHand.has(c.id));
-    const shuffled = available.sort(() => Math.random() - 0.5);
-    const toDeal = shuffled.slice(0, count);
+    // Preferuj karty których gracz nie widział jeszcze w tej grze
+    let available = allCards.filter(c => !inHand.has(c.id) && !inHistory.has(c.id));
+
+    // Fallback: talia się skończyła — recykling kart (tylko nie te aktualnie w ręce)
+    if (available.length < count) {
+        console.log(`[DrawCards] pool exhausted for player ${playerId}, recycling deck`);
+        available = allCards.filter(c => !inHand.has(c.id));
+    }
+
+    // Fisher-Yates shuffle
+    for (let i = available.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [available[i], available[j]] = [available[j], available[i]];
+    }
+    const toDeal = available.slice(0, count);
 
     for (const card of toDeal) {
         await tx.player_hands.create({
@@ -234,7 +246,7 @@ module.exports = (io, socket) => {
                 const shuffledCards = allSubmissions
                     .map(s => {
                         const { image_data, ...card } = s.cards;
-                        return { submission_id: s.id, card: { ...card, image_url: `/api/cards/${s.cards.id}/image` } };
+                        return { submission_id: s.id, player_id: s.player_id, card: { ...card, image_url: `/api/cards/${s.cards.id}/image` } };
                     })
                     .sort(() => Math.random() - 0.5);
 
@@ -452,7 +464,8 @@ async function _endRound(io, gameId, round, allPlayers) {
                         data: {
                             games_played: { increment: 1 },
                             games_won: { increment: isWinner ? 1 : 0 },
-                            total_points: { increment: gs.score }
+                            total_points: { increment: gs.score },
+                            coins: { increment: gs.score }
                         }
                     });
                 } else {
@@ -461,7 +474,8 @@ async function _endRound(io, gameId, round, allPlayers) {
                             user_id: userId,
                             games_played: 1,
                             games_won: isWinner ? 1 : 0,
-                            total_points: gs.score
+                            total_points: gs.score,
+                            coins: gs.score
                         }
                     });
                 }

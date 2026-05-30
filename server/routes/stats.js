@@ -52,7 +52,7 @@ router.get('/global', async (req, res) => {
     }
 });
 
-// GET /api/stats/leaderboard — top 10 graczy wg total_points
+// GET /api/stats/leaderboard — top graczy wg total_points (tylko gracze którzy grali)
 router.get('/leaderboard', async (req, res) => {
     try {
         const limit = Math.min(parseInt(req.query.limit) || 10, 100);
@@ -200,6 +200,77 @@ router.get('/my-games', auth, async (req, res) => {
     } catch (err) {
         console.error(err);
         return res.status(500).json({ error: 'Błąd pobierania historii gier' });
+    }
+});
+
+// GET /api/stats/psycho-profile — profil psychologiczny gracza
+router.get('/psycho-profile', auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Pobierz rundy w których gracz był narratorem (dla abstrakcji i zwięzłości)
+        const narratorRounds = await prisma.rounds.findMany({
+            where: {
+                prompt: { not: null },
+                room_players: { user_id: userId }
+            },
+            select: { prompt: true }
+        });
+
+        // Pobierz głosy gracza (dla trafności)
+        const playerRecord = await prisma.room_players.findFirst({
+            where: { user_id: userId },
+            select: { id: true }
+        });
+
+        let accuracy = 50;
+        let abstraction = 50;
+        let brevity = 50;
+        let sweetness = 50;
+        const gamesAnalyzed = narratorRounds.length;
+
+        if (playerRecord && narratorRounds.length > 0) {
+            // Zwięzłość: średnia długość promptu (normalizowana: 1-20 znaków = 100, >60 = 0)
+            const avgLen = narratorRounds.reduce((s, r) => s + (r.prompt?.length ?? 0), 0) / narratorRounds.length;
+            brevity = Math.max(0, Math.min(100, Math.round(100 - (avgLen - 5) * 2)));
+
+            // Abstrakcja: brak konkretnych słów = wyższa abstrakcja
+            const concreteWords = ['czerwony','niebieski','zielony','dom','drzewo','kot','pies','człowiek','twarz','ręka'];
+            const abstractScore = narratorRounds.reduce((s, r) => {
+                const prompt = (r.prompt ?? '').toLowerCase();
+                const hasConcrete = concreteWords.some(w => prompt.includes(w));
+                return s + (hasConcrete ? 0 : 1);
+            }, 0);
+            abstraction = Math.round((abstractScore / narratorRounds.length) * 100);
+
+            // Cukierkowatość: pozytywne nacechowanie
+            const positiveWords = ['miłość','sen','magia','luz','radość','piękn','szczęście','słońce','kwiat','cisza'];
+            const negativeWords = ['śmierć','ciemność','strach','ból','samotność','groza','zniszcz','mrok','krew'];
+            const sentiment = narratorRounds.reduce((s, r) => {
+                const prompt = (r.prompt ?? '').toLowerCase();
+                const pos = positiveWords.filter(w => prompt.includes(w)).length;
+                const neg = negativeWords.filter(w => prompt.includes(w)).length;
+                return s + pos - neg;
+            }, 0);
+            sweetness = Math.max(0, Math.min(100, 50 + sentiment * 10));
+        }
+
+        if (playerRecord) {
+            // Trafność: procent głosów na kartę narratora
+            const votes = await prisma.round_votes.findMany({
+                where: { voter_player_id: playerRecord.id },
+                include: { round_submissions: true }
+            });
+            if (votes.length > 0) {
+                const correct = votes.filter(v => v.round_submissions?.is_narrator_card).length;
+                accuracy = Math.round((correct / votes.length) * 100);
+            }
+        }
+
+        return res.json({ abstraction, brevity, sweetness, accuracy, games_analyzed: gamesAnalyzed });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Błąd pobierania profilu' });
     }
 });
 
